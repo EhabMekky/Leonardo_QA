@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA Automation Tool — AI-Powered Testing</title>
+  <meta name="description" content="Web-based QA automation tool with AI exploratory testing via Ollama and Playwright scripted test execution.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: {
+              50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+              400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+            },
+            surface: {
+              900: '#0f172a', 800: '#1e293b', 700: '#334155',
+              600: '#475569', 500: '#64748b', 400: '#94a3b8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes spin-slow {
+      to { transform: rotate(360deg); }
+    }
+
+    .animate-fade-in-up { animation: fadeInUp 0.4s ease-out; }
+    .animate-pulse-glow { animation: pulse-glow 2s infinite; }
+    .animate-shimmer {
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+      background-size: 200% 100%;
+      animation: shimmer 2s infinite;
+    }
+    .animate-spin-slow { animation: spin-slow 1.5s linear infinite; }
+
+    /* Glass morphism card */
+    .glass-card {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    /* File dropzone */
+    .dropzone {
+      border: 2px dashed #475569;
+      transition: all 0.3s ease;
+    }
+    .dropzone.drag-over {
+      border-color: #818cf8;
+      background: rgba(99, 102, 241, 0.08);
+    }
+    .dropzone:hover {
+      border-color: #64748b;
+    }
+
+    /* Toggle switch */
+    .toggle-checkbox:checked + .toggle-label { background: #6366f1; }
+    .toggle-checkbox:checked + .toggle-label .toggle-dot { transform: translateX(100%); }
+    .toggle-dot { transition: transform 0.2s ease; }
+
+    /* Progress step animations */
+    .step-enter { animation: fadeInUp 0.3s ease-out; }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Subtle glow on cards */
+    .card-glow:hover {
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-surface-900 text-gray-100 min-h-screen">
+
+  <!-- ======================= HEADER ======================= -->
+  <header class="sticky top-0 z-50 border-b border-surface-700/50 backdrop-blur-xl bg-surface-900/80">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <!-- Logo -->
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight">QA Automation</h1>
+          <p class="text-[11px] text-surface-400 -mt-0.5">Playwright • Ollama • AI Testing</p>
+        </div>
+      </div>
+
+      <!-- Ollama Status Indicator -->
+      <div id="ollama-status" class="flex items-center gap-2 px-3 py-1.5 rounded-full glass-card cursor-pointer" onclick="checkOllamaStatus()" title="Click to refresh">
+        <span id="ollama-dot" class="w-2.5 h-2.5 rounded-full bg-surface-500 transition-colors duration-500"></span>
+        <span id="ollama-label" class="text-xs font-medium text-surface-400">Checking Ollama...</span>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ======================= MAIN CONTENT ======================= -->
+  <main class="max-w-6xl mx-auto px-6 py-8">
+
+    <!-- Hero -->
+    <div class="text-center mb-10 animate-fade-in-up">
+      <h2 class="text-3xl font-extrabold tracking-tight mb-2">
+        <span class="gradient-text">Intelligent QA Testing</span>
+      </h2>
+      <p class="text-surface-400 max-w-xl mx-auto text-sm">
+        Run AI-powered exploratory tests or execute scripted CSV test cases with Playwright.
+        Get detailed Allure-style reports with screenshots and step-by-step logs.
+      </p>
+    </div>
+
+    <div class="grid lg:grid-cols-5 gap-8">
+
+      <!-- ============ LEFT: CONFIG FORM ============ -->
+      <div class="lg:col-span-2 space-y-5">
+        <form id="test-form" class="space-y-5" onsubmit="startTest(event)">
+
+          <!-- URL Input -->
+          <div class="space-y-1.5">
+            <label for="url-input" class="block text-sm font-semibold text-gray-200">Target URL <span class="text-red-400">*</span></label>
+            <div class="relative">
+              <input
+                type="url"
+                id="url-input"
+                name="url"
+                required
+                placeholder="https://www.example.com"
+                class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-gray-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all"
+              >
+              <div class="absolute right-3 top-1/2 -translate-y-1/2 text-surface-500">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Model Selector -->
+          <div class="space-y-1.5">
+            <label for="model-select" class="block text-sm font-semibold text-gray-200">Ollama Model</label>
+            <select
+              id="model-select"
+              name="model"
+              class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer"
+            >
+              <option value="qwen2.5-coder:7b">qwen2.5-coder:7b (default)</option>
+            </select>
+          </div>
+
+          <!-- Cookies Textarea -->
+          <div class="space-y-1.5">
+            <label for="cookies-input" class="block text-sm font-semibold text-gray-200">
+              Cookies <span class="text-surface-500 font-normal">(optional)</span>
+            </label>
+            <textarea
+              id="cookies-input"
+              name="cookies"
+              rows="3"
+              placeholder='[{"name":"session","value":"abc123","url":"https://example.com"}]'
+              class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-gray-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all font-mono text-xs resize-none"
+            ></textarea>
+            <p class="text-[11px] text-surface-500">JSON array format: [{"name":"...","value":"...","url":"https://..."}]</p>
+          </div>
+
+          <!-- Test Steps Input Section -->
+          <div id="test-steps-input-section" class="space-y-1.5 transition-all duration-300">
+            <label class="block text-sm font-semibold text-gray-200">
+              Test Steps CSV <span class="text-surface-500 font-normal">(optional)</span>
+            </label>
+            
+            <div class="glass-card rounded-lg p-4 space-y-4">
+              <!-- Tabs Header -->
+              <div class="flex border-b border-surface-700/50 pb-2">
+                <button
+                  type="button"
+                  id="tab-upload"
+                  onclick="switchTab('upload')"
+                  class="flex-1 pb-1.5 text-xs font-semibold text-brand-400 border-b-2 border-brand-500 focus:outline-none transition-all text-center"
+                >
+                  📁 Upload CSV File
+                </button>
+                <button
+                  type="button"
+                  id="tab-write"
+                  onclick="switchTab('write')"
+                  class="flex-1 pb-1.5 text-xs font-semibold text-surface-400 border-b-2 border-transparent hover:text-gray-200 focus:outline-none transition-all text-center"
+                >
+                  ✍️ Write Test Case
+                </button>
+              </div>
+
+              <!-- Tab 1: Upload CSV -->
+              <div id="tab-content-upload" class="space-y-2">
+                <div
+                  id="csv-dropzone"
+                  class="dropzone rounded-lg p-6 text-center cursor-pointer transition-all"
+                  onclick="document.getElementById('csv-file').click()"
+                  ondragover="handleDragOver(event)"
+                  ondragleave="handleDragLeave(event)"
+                  ondrop="handleDrop(event)"
+                >
+                  <input type="file" id="csv-file" name="csvFile" accept=".csv" class="hidden" onchange="handleFileSelect(event)">
+                  <div id="dropzone-content">
+                    <svg class="w-8 h-8 mx-auto text-surface-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                    </svg>
+                    <p class="text-xs text-surface-400">Drop CSV file here or <span class="text-brand-400 font-medium">browse</span></p>
+                    <p class="text-[10px] text-surface-500 mt-1">Format: Action, Selector, Value</p>
+                  </div>
+                  <div id="dropzone-file" class="hidden">
+                    <div class="flex items-center justify-center gap-3">
+                      <svg class="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <div class="text-left">
+                        <p id="file-name" class="text-sm font-medium text-gray-200"></p>
+                        <p id="file-size" class="text-[11px] text-surface-500"></p>
+                      </div>
+                      <button type="button" onclick="event.stopPropagation(); clearFile()" class="ml-2 text-surface-400 hover:text-red-400 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tab 2: Write Test Case -->
+              <div id="tab-content-write" class="hidden space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-surface-400">Format: Action, Selector, Value</span>
+                  <div class="flex gap-2">
+                    <button type="button" onclick="loadSampleCSV()" class="text-brand-400 hover:text-brand-300 font-medium transition-colors">Load Sample</button>
+                    <span class="text-surface-600">|</span>
+                    <button type="button" onclick="clearCSVText()" class="text-surface-400 hover:text-red-400 font-medium transition-colors">Clear</button>
+                  </div>
+                </div>
+                <textarea
+                  id="csv-text-input"
+                  name="csvText"
+                  rows="6"
+                  placeholder="Action,Selector,Value&#10;navigate,,https://example.com&#10;fill,input[name=&quot;q&quot;],Antigravity AI&#10;click,input[type=&quot;submit&quot;],&#10;screenshot,,&#10;wait,,1000"
+                  class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-xs text-gray-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all font-mono resize-y"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exploratory Mode Toggle -->
+          <div class="glass-card rounded-lg p-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center">
+                  <span class="text-lg">🤖</span>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-gray-200">AI Exploratory Testing</p>
+                  <p class="text-[11px] text-surface-400">Ollama auto-explores the website</p>
+                </div>
+              </div>
+              <div class="relative">
+                <input type="checkbox" id="exploratory-toggle" name="exploratoryMode" class="toggle-checkbox sr-only">
+                <label for="exploratory-toggle" class="toggle-label flex items-center w-11 h-6 bg-surface-700 rounded-full cursor-pointer transition-colors">
+                  <span class="toggle-dot w-5 h-5 bg-white rounded-full shadow ml-0.5"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            id="start-btn"
+            class="w-full py-3.5 rounded-lg bg-gradient-to-r from-brand-600 to-purple-600 text-white font-semibold text-sm hover:from-brand-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
+          >
+            <span id="btn-text" class="flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Start Testing
+            </span>
+            <span id="btn-loading" class="hidden flex items-center justify-center gap-2">
+              <svg class="w-5 h-5 animate-spin-slow" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              Running Tests...
+            </span>
+          </button>
+        </form>
+
+        <!-- Past Reports -->
+        <div class="glass-card rounded-lg p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-200">📋 Past Reports</h3>
+            <button onclick="loadReports()" class="text-xs text-brand-400 hover:text-brand-300 transition-colors">Refresh</button>
+          </div>
+          <div id="reports-list" class="space-y-2 max-h-48 overflow-y-auto">
+            <p class="text-xs text-surface-500">Loading...</p>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ============ RIGHT: LIVE EXECUTION PANEL ============ -->
+      <div class="lg:col-span-3">
+        <div class="glass-card rounded-xl overflow-hidden sticky top-20">
+          <!-- Panel Header -->
+          <div class="flex items-center justify-between px-5 py-3.5 border-b border-surface-700/50">
+            <div class="flex items-center gap-2">
+              <span id="panel-status-dot" class="w-2.5 h-2.5 rounded-full bg-surface-600"></span>
+              <h3 class="text-sm font-semibold text-gray-200">Live Execution</h3>
+            </div>
+            <div id="panel-meta" class="flex items-center gap-3 text-xs text-surface-400">
+              <span id="panel-mode" class="hidden px-2 py-0.5 rounded bg-surface-700 text-surface-300"></span>
+              <span id="panel-timer" class="hidden tabular-nums font-mono"></span>
+            </div>
+          </div>
+
+          <!-- Panel Body -->
+          <div id="execution-panel" class="p-5 min-h-[420px] max-h-[calc(100vh-200px)] overflow-y-auto">
+            <!-- Empty State -->
+            <div id="panel-empty" class="flex flex-col items-center justify-center h-80 text-center">
+              <div class="w-16 h-16 rounded-2xl bg-surface-800 flex items-center justify-center mb-4">
+                <svg class="w-8 h-8 text-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/>
+                </svg>
+              </div>
+              <p class="text-sm text-surface-400 font-medium">Ready to test</p>
+              <p class="text-xs text-surface-500 mt-1">Configure your test and click Start Testing</p>
+            </div>
+
+            <!-- Steps Container (hidden until test starts) -->
+            <div id="steps-container" class="hidden space-y-2"></div>
+
+            <!-- Summary (shown after completion) -->
+            <div id="result-summary" class="hidden mt-4"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+
+  <!-- ======================= FOOTER ======================= -->
+  <footer class="border-t border-surface-800 mt-16">
+    <div class="max-w-6xl mx-auto px-6 py-6 text-center text-xs text-surface-500">
+      QA Automation Tool • Built with Playwright, Ollama & Express
+    </div>
+  </footer>
+
+
+  <!-- ======================= JAVASCRIPT ======================= -->
+  <script>
+    // ---- State ----
+    let currentRunId = null;
+    let timerInterval = null;
+    let timerStart = null;
+    let eventSource = null;
+
+    // ---- On Load ----
+    document.addEventListener('DOMContentLoaded', () => {
+      checkOllamaStatus();
+      loadModels();
+      loadReports();
+
+      // Toggle inputs disable state on exploratory toggle
+      document.getElementById('exploratory-toggle').addEventListener('change', (e) => {
+        const isExploratory = e.target.checked;
+        const testInputSection = document.getElementById('test-steps-input-section');
+        if (isExploratory) {
+          testInputSection.classList.add('opacity-40', 'pointer-events-none');
+        } else {
+          testInputSection.classList.remove('opacity-40', 'pointer-events-none');
+        }
+      });
+    });
+
+    // ============================================================
+    // OLLAMA STATUS CHECK
+    // ============================================================
+    async function checkOllamaStatus() {
+      const dot = document.getElementById('ollama-dot');
+      const label = document.getElementById('ollama-label');
+
+      try {
+        const res = await fetch('/api/ollama-status');
+        const data = await res.json();
+
+        if (data.connected) {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-green-400 transition-colors duration-500';
+          label.textContent = `Ollama Online (${data.models?.length || 0} models)`;
+          label.className = 'text-xs font-medium text-green-400';
+        } else {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-red-400 transition-colors duration-500';
+          label.textContent = 'Ollama Offline';
+          label.className = 'text-xs font-medium text-red-400';
+        }
+      } catch (e) {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-red-400 transition-colors duration-500';
+        label.textContent = 'Cannot reach server';
+        label.className = 'text-xs font-medium text-red-400';
+      }
+    }
+
+    // ============================================================
+    // LOAD MODELS
+    // ============================================================
+    async function loadModels() {
+      try {
+        const res = await fetch('/api/ollama-models');
+        const data = await res.json();
+
+        if (data.models && data.models.length > 0) {
+          const select = document.getElementById('model-select');
+          select.innerHTML = '';
+          data.models.forEach((m, i) => {
+            const option = document.createElement('option');
+            option.value = m.name;
+            option.textContent = m.name + (i === 0 ? ' (default)' : '');
+            select.appendChild(option);
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to load models:', e);
+      }
+    }
+
+    // ============================================================
+    // LOAD PAST REPORTS
+    // ============================================================
+    async function loadReports() {
+      const container = document.getElementById('reports-list');
+      try {
+        const res = await fetch('/api/reports');
+        const data = await res.json();
+
+        if (data.reports && data.reports.length > 0) {
+          container.innerHTML = data.reports.slice(0, 10).map(r => `
+            <a href="${r.url}" target="_blank" class="block px-3 py-2 rounded-lg bg-surface-800/50 hover:bg-surface-700/50 transition-colors group">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-300 group-hover:text-brand-400 transition-colors truncate">${r.id}</span>
+                <svg class="w-3.5 h-3.5 text-surface-500 group-hover:text-brand-400 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>
+                </svg>
+              </div>
+              <p class="text-[11px] text-surface-500 mt-0.5">${r.createdAt ? new Date(r.createdAt).toLocaleString() : ''}</p>
+            </a>
+          `).join('');
+        } else {
+          container.innerHTML = '<p class="text-xs text-surface-500 text-center py-4">No reports yet</p>';
+        }
+      } catch (e) {
+        container.innerHTML = '<p class="text-xs text-surface-500">Failed to load reports</p>';
+      }
+    }
+
+    // ============================================================
+    // FILE UPLOAD HANDLING
+    // ============================================================
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const input = document.getElementById('csv-file');
+        // Create a DataTransfer to set files
+        const dt = new DataTransfer();
+        dt.items.add(files[0]);
+        input.files = dt.files;
+        showSelectedFile(files[0]);
+      }
+    }
+
+    function handleFileSelect(e) {
+      if (e.target.files.length > 0) {
+        showSelectedFile(e.target.files[0]);
+      }
+    }
+
+    function showSelectedFile(file) {
+      document.getElementById('dropzone-content').classList.add('hidden');
+      document.getElementById('dropzone-file').classList.remove('hidden');
+      document.getElementById('file-name').textContent = file.name;
+      document.getElementById('file-size').textContent = formatBytes(file.size);
+    }
+
+    function clearFile() {
+      document.getElementById('csv-file').value = '';
+      document.getElementById('dropzone-content').classList.remove('hidden');
+      document.getElementById('dropzone-file').classList.add('hidden');
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    // ============================================================
+    // TAB CONTROLLER & EDITORS
+    // ============================================================
+    let activeTab = 'upload';
+
+    function switchTab(tab) {
+      activeTab = tab;
+      
+      const tabUpload = document.getElementById('tab-upload');
+      const tabWrite = document.getElementById('tab-write');
+      const contentUpload = document.getElementById('tab-content-upload');
+      const contentWrite = document.getElementById('tab-content-write');
+
+      if (tab === 'upload') {
+        tabUpload.className = 'flex-1 pb-1.5 text-xs font-semibold text-brand-400 border-b-2 border-brand-500 focus:outline-none transition-all text-center';
+        tabWrite.className = 'flex-1 pb-1.5 text-xs font-semibold text-surface-400 border-b-2 border-transparent hover:text-gray-200 focus:outline-none transition-all text-center';
+        contentUpload.classList.remove('hidden');
+        contentWrite.classList.add('hidden');
+      } else {
+        tabWrite.className = 'flex-1 pb-1.5 text-xs font-semibold text-brand-400 border-b-2 border-brand-500 focus:outline-none transition-all text-center';
+        tabUpload.className = 'flex-1 pb-1.5 text-xs font-semibold text-surface-400 border-b-2 border-transparent hover:text-gray-200 focus:outline-none transition-all text-center';
+        contentUpload.classList.add('hidden');
+        contentWrite.classList.remove('hidden');
+      }
+    }
+
+    function loadSampleCSV() {
+      const textarea = document.getElementById('csv-text-input');
+      textarea.value = `Action,Selector,Value
+navigate,,https://example.com
+wait,,1000
+screenshot,,`;
+    }
+
+    function clearCSVText() {
+      document.getElementById('csv-text-input').value = '';
+    }
+
+    // ============================================================
+    // START TEST
+    // ============================================================
+    async function startTest(e) {
+      e.preventDefault();
+
+      const form = document.getElementById('test-form');
+      const formData = new FormData(form);
+
+      // Validate
+      const url = formData.get('url');
+      if (!url) {
+        showNotification('Please enter a target URL', 'error');
+        return;
+      }
+
+      const isExploratory = document.getElementById('exploratory-toggle').checked;
+      const csvFile = document.getElementById('csv-file').files[0];
+      const csvText = document.getElementById('csv-text-input').value;
+
+      if (!isExploratory) {
+        if (activeTab === 'upload' && !csvFile) {
+          showNotification('Please upload a CSV file or switch to write manual steps', 'error');
+          return;
+        }
+        if (activeTab === 'write' && (!csvText || !csvText.trim())) {
+          showNotification('Please write your test case steps or switch to upload CSV file', 'error');
+          return;
+        }
+      }
+
+      // Ensure we only submit what is in the active tab
+      if (isExploratory) {
+        formData.delete('csvFile');
+        formData.delete('csvText');
+      } else if (activeTab === 'upload') {
+        formData.delete('csvText');
+      } else if (activeTab === 'write') {
+        formData.delete('csvFile');
+      }
+
+      // Set exploratory mode in form data
+      formData.set('exploratoryMode', isExploratory ? 'true' : 'false');
+
+      // UI: Show loading state
+      setButtonLoading(true);
+      resetExecutionPanel();
+      showExecutionPanel();
+
+      try {
+        const res = await fetch('/run-test', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to start test');
+        }
+
+        currentRunId = data.runId;
+        startTimer();
+        updatePanelMode(data.mode);
+
+        // Connect to SSE for live updates
+        connectSSE(data.runId);
+
+      } catch (error) {
+        showNotification(error.message, 'error');
+        setButtonLoading(false);
+        addLogEntry('error', `❌ ${error.message}`);
+      }
+    }
+
+    // ============================================================
+    // SSE CONNECTION
+    // ============================================================
+    function connectSSE(runId) {
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      eventSource = new EventSource(`/test-status/${runId}`);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleSSEEvent(data);
+        } catch (e) {
+          console.warn('Failed to parse SSE event:', e);
+        }
+      };
+
+      eventSource.onerror = () => {
+        // SSE connection closed (could be normal completion)
+        eventSource.close();
+        eventSource = null;
+      };
+    }
+
+    function handleSSEEvent(data) {
+      switch (data.type) {
+        case 'status':
+          addLogEntry('status', data.message);
+          break;
+
+        case 'info':
+          addLogEntry('info', data.message);
+          break;
+
+        case 'warning':
+          addLogEntry('warning', data.message);
+          break;
+
+        case 'step':
+          addLogEntry('step', data.message);
+          break;
+
+        case 'step-result':
+          addLogEntry(data.status === 'passed' ? 'success' : 'error', data.message);
+          break;
+
+        case 'error':
+          addLogEntry('error', data.message);
+          setButtonLoading(false);
+          stopTimer();
+          updatePanelStatus('error');
+          break;
+
+        case 'complete':
+          addLogEntry('success', `🎉 ${data.message}`);
+          setButtonLoading(false);
+          stopTimer();
+          updatePanelStatus('complete');
+          showResultSummary(data);
+          loadReports();
+
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          break;
+      }
+    }
+
+    // ============================================================
+    // EXECUTION PANEL
+    // ============================================================
+    function resetExecutionPanel() {
+      document.getElementById('steps-container').innerHTML = '';
+      document.getElementById('result-summary').classList.add('hidden');
+      document.getElementById('result-summary').innerHTML = '';
+    }
+
+    function showExecutionPanel() {
+      document.getElementById('panel-empty').classList.add('hidden');
+      document.getElementById('steps-container').classList.remove('hidden');
+      updatePanelStatus('running');
+    }
+
+    function addLogEntry(type, message) {
+      const container = document.getElementById('steps-container');
+
+      const iconMap = {
+        status: '🔄',
+        info: 'ℹ️',
+        warning: '⚠️',
+        step: '▶️',
+        success: '✅',
+        error: '❌'
+      };
+
+      const colorMap = {
+        status: 'text-blue-400',
+        info: 'text-surface-400',
+        warning: 'text-amber-400',
+        step: 'text-brand-400',
+        success: 'text-green-400',
+        error: 'text-red-400'
+      };
+
+      const entry = document.createElement('div');
+      entry.className = `step-enter flex items-start gap-2 px-3 py-2 rounded-lg ${type === 'error' ? 'bg-red-500/5' : type === 'success' ? 'bg-green-500/5' : 'bg-surface-800/30'}`;
+      entry.innerHTML = `
+        <span class="flex-shrink-0 text-sm mt-0.5">${iconMap[type] || '📝'}</span>
+        <span class="text-xs ${colorMap[type] || 'text-surface-400'} leading-relaxed">${escapeHtml(message)}</span>
+      `;
+      container.appendChild(entry);
+
+      // Auto-scroll to bottom
+      const panel = document.getElementById('execution-panel');
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    function updatePanelStatus(status) {
+      const dot = document.getElementById('panel-status-dot');
+      switch (status) {
+        case 'running':
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse';
+          break;
+        case 'complete':
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-green-400';
+          break;
+        case 'error':
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-red-400';
+          break;
+        default:
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-surface-600';
+      }
+    }
+
+    function updatePanelMode(mode) {
+      const badge = document.getElementById('panel-mode');
+      badge.classList.remove('hidden');
+      badge.textContent = mode === 'exploratory' ? '🤖 AI Explorer' : '📄 Scripted';
+    }
+
+    function showResultSummary(data) {
+      if (!data.summary) return;
+
+      const { total, passed, failed, duration } = data.summary;
+      const passRate = total > 0 ? ((passed / total) * 100).toFixed(0) : 0;
+      const isAllPassed = failed === 0;
+
+      const container = document.getElementById('result-summary');
+      container.classList.remove('hidden');
+      container.innerHTML = `
+        <div class="mt-4 p-4 rounded-xl ${isAllPassed ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'} animate-fade-in-up">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-bold ${isAllPassed ? 'text-green-400' : 'text-red-400'}">${isAllPassed ? '✓ All Tests Passed' : '✗ Some Tests Failed'}</span>
+            <span class="text-xs text-surface-400">${duration}</span>
+          </div>
+          <div class="grid grid-cols-3 gap-3 mb-3">
+            <div class="text-center p-2 rounded-lg bg-surface-800/50">
+              <div class="text-lg font-bold text-gray-200">${total}</div>
+              <div class="text-[11px] text-surface-400">Total</div>
+            </div>
+            <div class="text-center p-2 rounded-lg bg-surface-800/50">
+              <div class="text-lg font-bold text-green-400">${passed}</div>
+              <div class="text-[11px] text-surface-400">Passed</div>
+            </div>
+            <div class="text-center p-2 rounded-lg bg-surface-800/50">
+              <div class="text-lg font-bold text-red-400">${failed}</div>
+              <div class="text-[11px] text-surface-400">Failed</div>
+            </div>
+          </div>
+          <!-- Pass rate bar -->
+          <div class="h-2 rounded-full bg-surface-700 overflow-hidden mb-3">
+            <div class="h-full rounded-full ${isAllPassed ? 'bg-green-400' : 'bg-red-400'} transition-all duration-700" style="width: ${passRate}%"></div>
+          </div>
+          ${data.reportUrl ? `
+            <a href="${data.reportUrl}" target="_blank" class="block w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-center text-sm font-semibold transition-colors">
+              📊 View Full Report
+            </a>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // ============================================================
+    // TIMER
+    // ============================================================
+    function startTimer() {
+      const timerEl = document.getElementById('panel-timer');
+      timerEl.classList.remove('hidden');
+      timerStart = Date.now();
+
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+        const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+        const secs = (elapsed % 60).toString().padStart(2, '0');
+        timerEl.textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // ============================================================
+    // UI HELPERS
+    // ============================================================
+    function setButtonLoading(loading) {
+      const btn = document.getElementById('start-btn');
+      const btnText = document.getElementById('btn-text');
+      const btnLoading = document.getElementById('btn-loading');
+
+      btn.disabled = loading;
+      if (loading) {
+        btnText.classList.add('hidden');
+        btnLoading.classList.remove('hidden');
+      } else {
+        btnText.classList.remove('hidden');
+        btnLoading.classList.add('hidden');
+      }
+    }
+
+    function showNotification(message, type = 'info') {
+      // Simple inline notification
+      const colorClass = type === 'error' ? 'bg-red-500/15 border-red-500/30 text-red-400' : 'bg-blue-500/15 border-blue-500/30 text-blue-400';
+      const notification = document.createElement('div');
+      notification.className = `fixed top-20 right-6 z-50 px-4 py-3 rounded-lg border ${colorClass} text-sm font-medium animate-fade-in-up shadow-xl max-w-sm`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 4000);
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

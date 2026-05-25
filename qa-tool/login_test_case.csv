@@ -1,0 +1,5 @@
+Step,Test Data,Result
+1. Navigate to the login page,,The login page is displayed with Username and Password fields and a Login button.
+2. Enter Username,standard_user,The username "standard_user" is entered in the Username field.
+3. Enter Password,secret_sauce,The password "secret_sauce" is entered in the Password field (masked).
+4. Click the Login button,,The user is successfully authenticated and redirected to the inventory/home page.

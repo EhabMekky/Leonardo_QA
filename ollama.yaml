@@ -1,0 +1,10 @@
+# Ollama configuration
+# Use this file to override the default server port and host.
+# Change the port if 11434 is already in use.
+server:
+  host: 127.0.0.1
+  port: 11435
+
+# models:
+#   - name: llama3.2
+#     path: /path/to/model
