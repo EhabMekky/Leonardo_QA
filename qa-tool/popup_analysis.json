@@ -1,0 +1,476 @@
+{
+  "traces": [
+    [
+      {
+        "tagName": "HTML",
+        "id": "",
+        "className": "",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 1280,
+        "height": 4495.109375,
+        "top": 0,
+        "left": 0
+      }
+    ],
+    [],
+    [
+      {
+        "tagName": "DIV",
+        "id": "mp_form_fixed_bar1",
+        "className": "mailpoet_form mailpoet_form_fixed_bar mailpoet_form_position_top mailpoet_form_animation_slideup starting-to-show",
+        "position": "fixed",
+        "zIndex": "100000",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      }
+    ],
+    [
+      {
+        "tagName": "FORM",
+        "id": "",
+        "className": "mailpoet_form mailpoet_form_form mailpoet_form_fixed_bar",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "mp_form_fixed_bar1",
+        "className": "mailpoet_form mailpoet_form_fixed_bar mailpoet_form_position_top mailpoet_form_animation_slideup starting-to-show",
+        "position": "fixed",
+        "zIndex": "100000",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      }
+    ],
+    [
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns_container",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "FORM",
+        "id": "",
+        "className": "mailpoet_form mailpoet_form_form mailpoet_form_fixed_bar",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "mp_form_fixed_bar1",
+        "className": "mailpoet_form mailpoet_form_fixed_bar mailpoet_form_position_top mailpoet_form_animation_slideup starting-to-show",
+        "position": "fixed",
+        "zIndex": "100000",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      }
+    ],
+    [
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns mailpoet_paragraph mailpoet_stack_on_mobile",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns_container",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "FORM",
+        "id": "",
+        "className": "mailpoet_form mailpoet_form_form mailpoet_form_fixed_bar",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "mp_form_fixed_bar1",
+        "className": "mailpoet_form mailpoet_form_fixed_bar mailpoet_form_position_top mailpoet_form_animation_slideup starting-to-show",
+        "position": "fixed",
+        "zIndex": "100000",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      }
+    ],
+    [
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_column",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns mailpoet_paragraph mailpoet_stack_on_mobile",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns_container",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "FORM",
+        "id": "",
+        "className": "mailpoet_form mailpoet_form_form mailpoet_form_fixed_bar",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "mp_form_fixed_bar1",
+        "className": "mailpoet_form mailpoet_form_fixed_bar mailpoet_form_position_top mailpoet_form_animation_slideup starting-to-show",
+        "position": "fixed",
+        "zIndex": "100000",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      }
+    ],
+    [
+      {
+        "tagName": "H2",
+        "id": "",
+        "className": "mailpoet-heading  mailpoet-has-font-size",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_column",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns mailpoet_paragraph mailpoet_stack_on_mobile",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns_container",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "FORM",
+        "id": "",
+        "className": "mailpoet_form mailpoet_form_form mailpoet_form_fixed_bar",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "mp_form_fixed_bar1",
+        "className": "mailpoet_form mailpoet_form_fixed_bar mailpoet_form_position_top mailpoet_form_animation_slideup starting-to-show",
+        "position": "fixed",
+        "zIndex": "100000",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      }
+    ],
+    [
+      {
+        "tagName": "SPAN",
+        "id": "",
+        "className": "mailpoet-has-font",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "H2",
+        "id": "",
+        "className": "mailpoet-heading  mailpoet-has-font-size",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_column",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns mailpoet_paragraph mailpoet_stack_on_mobile",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns_container",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "FORM",
+        "id": "",
+        "className": "mailpoet_form mailpoet_form_form mailpoet_form_fixed_bar",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "mp_form_fixed_bar1",
+        "className": "mailpoet_form mailpoet_form_fixed_bar mailpoet_form_position_top mailpoet_form_animation_slideup starting-to-show",
+        "position": "fixed",
+        "zIndex": "100000",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      }
+    ],
+    [
+      {
+        "tagName": "STRONG",
+        "id": "",
+        "className": "",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "SPAN",
+        "id": "",
+        "className": "mailpoet-has-font",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "H2",
+        "id": "",
+        "className": "mailpoet-heading  mailpoet-has-font-size",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_column",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns mailpoet_paragraph mailpoet_stack_on_mobile",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "",
+        "className": "mailpoet_form_columns_container",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "FORM",
+        "id": "",
+        "className": "mailpoet_form mailpoet_form_form mailpoet_form_fixed_bar",
+        "position": "static",
+        "zIndex": "auto",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      },
+      {
+        "tagName": "DIV",
+        "id": "mp_form_fixed_bar1",
+        "className": "mailpoet_form mailpoet_form_fixed_bar mailpoet_form_position_top mailpoet_form_animation_slideup starting-to-show",
+        "position": "fixed",
+        "zIndex": "100000",
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "left": 0
+      }
+    ]
+  ],
+  "containerCandidates": [
+    {
+      "tagName": "HTML",
+      "id": "",
+      "className": "",
+      "position": "static",
+      "zIndex": "auto",
+      "width": 1280,
+      "height": 4495.109375
+    }
+  ],
+  "allCloseButtons": [
+    {
+      "tagName": "BUTTON",
+      "id": "",
+      "className": "cky-btn-close",
+      "text": "",
+      "top": 960.796875,
+      "left": 385.5,
+      "width": 10,
+      "height": 10,
+      "outerHTML": "<button class=\"cky-btn-close\" aria-label=\"Close\" data-cky-tag=\"detail-close\"> <img src=\"https://cdn-cookieyes.com/assets/images/close.svg\" alt=\"Close\""
+    },
+    {
+      "tagName": "SPAN",
+      "id": "",
+      "className": "xoo-el-close xoo-el-icon-cross",
+      "text": "",
+      "top": 110.4000015258789,
+      "left": 947.3500366210938,
+      "width": 20,
+      "height": 19.99999237060547,
+      "outerHTML": "<span class=\"xoo-el-close xoo-el-icon-cross\"></span>"
+    },
+    {
+      "tagName": "SPAN",
+      "id": "",
+      "className": "xoo-el-notice-close xoo-el-icon-cross",
+      "text": "",
+      "top": 85.4375,
+      "left": 1098.387451171875,
+      "width": 20,
+      "height": 20,
+      "outerHTML": "<span class=\"xoo-el-notice-close xoo-el-icon-cross\"></span>"
+    }
+  ]
+}

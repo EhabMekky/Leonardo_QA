@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Self-Healing Test Sandbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --border: #334155;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 32px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    h1 {
+      font-size: 24px;
+      margin-top: 0;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #a5b4fc, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .test-section {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      position: relative;
+    }
+    .test-section:last-child {
+      border-bottom: none;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #cbd5e1;
+    }
+    input[type="text"] {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 14px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+    button {
+      background: var(--primary);
+      color: var(--text);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: var(--primary-hover);
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.3s;
+    }
+    .status::before {
+      content: '●';
+      font-size: 8px;
+    }
+    /* Section 1: Obstructed Button setup */
+    .obstructed-container {
+      position: relative;
+      display: inline-block;
+    }
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(99, 102, 241, 0.15);
+      backdrop-filter: blur(1px);
+      cursor: not-allowed;
+      border-radius: 8px;
+      z-index: 10;
+    }
+    /* Section 5: Dynamic Modal Overlay */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      border-radius: 8px;
+    }
+    .modal-content {
+      background: #1e293b;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Self-Healing Test Sandbox</h1>
+    <p>This sandbox page contains intentional UI challenges to test self-healing strategies.</p>
+
+    <!-- Test 1: Visually Obstructed/Overlapping Button -->
+    <div class="test-section">
+      <label>Test 1: Obstructed Click (Overlapping Element)</label>
+      <div class="obstructed-container">
+        <div class="overlay" title="This transparent overlay blocks direct clicks"></div>
+        <button id="obstructed-btn" onclick="updateStatus('status-1', 'Passed! Obstructed click healed.')">Obstructed Button</button>
+      </div>
+      <div id="status-1" class="status">Waiting for action...</div>
+    </div>
+
+    <!-- Test 2: Healed ID / Fuzzy Text Match -->
+    <div class="test-section">
+      <label>Test 2: Changed Selector ID (Fuzzy Match / Text healing)</label>
+      <!-- We will try to click `#login-submit` but the actual ID is `#healed-login-submit` -->
+      <button id="healed-login-submit" onclick="updateStatus('status-2', 'Passed! Broken ID healed via text/fuzzy matching.')">Login Submit</button>
+      <div id="status-2" class="status">Waiting for action...</div>
+    </div>
+
+    <!-- Test 3: Fuzzy Name/Placeholder matching -->
+    <div class="test-section">
+      <label>Test 3: Fuzzy Text Fill (Input search)</label>
+      <!-- We will try to fill `.user-email` but the actual ID/class is different -->
+      <input type="text" id="user-email-address" placeholder="Enter email address" oninput="if(this.value.length > 3) updateStatus('status-3', 'Passed! Input filled to ' + this.value)" />
+      <div id="status-3" class="status">Waiting for action...</div>
+    </div>
+
+    <!-- Test 4: Coordinate-based clicking via label offset -->
+    <div class="test-section" style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px;">
+      <label id="coord-label" style="display: inline-block;">Target Field Label:</label>
+      <!-- This input has absolutely no selector hooks. We will find it relative to the label above -->
+      <input type="text" oninput="if(this.value.length > 3) updateStatus('status-4', 'Passed! Healed via coordinates: ' + this.value)" style="margin-top: 4px;" />
+      <div id="status-4" class="status">Waiting for action...</div>
+    </div>
+
+    <!-- Test 5: Dynamic Modal Overlay Dismissal -->
+    <div class="test-section" style="position: relative;">
+      <label>Test 5: Overlay Dismissal (Close buttons / Escape key)</label>
+      <button id="covered-btn" onclick="updateStatus('status-5', 'Passed! Obstructed click completed after overlay recovery.')">Interactive Target Button</button>
+      <div id="status-5" class="status">Waiting for action...</div>
+      
+      <!-- Overlay covering the section -->
+      <div id="mock-modal" class="modal-overlay" role="dialog">
+        <div class="modal-content">
+          <p style="margin-bottom: 12px; color: #f8fafc; font-size: 13px;">This modal blocks the button behind it.</p>
+          <input type="text" id="covered-input" placeholder="Enter username in modal" oninput="if(this.value.length > 3) updateStatus('status-5', 'Passed! Inner input filled to ' + this.value)" style="margin-bottom: 12px; width: 80%; background: #0f172a; border: 1px solid var(--border); border-radius: 4px; padding: 6px; color: #fff;" />
+          <button class="modal-close-button" onclick="document.getElementById('mock-modal').style.display='none'">Close Modal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function updateStatus(id, text) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.innerText = text;
+        el.style.color = '#10b981';
+      }
+    }
+
+    // Modal Escape key listener
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('mock-modal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

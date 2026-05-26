@@ -16,6 +16,7 @@ import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { executeInteraction, dismissCommonPopups } from './interaction-helper.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -115,6 +116,28 @@ export async function runScriptedTest(options) {
       const navStart = Date.now();
       try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: ACTION_TIMEOUT_MS });
+
+        // Aggressively dismiss popups with retries — cookie banners (e.g. CookieYes)
+        // load asynchronously and may not appear immediately after domcontentloaded.
+        // We retry up to 3 times with 1-second gaps to make sure they are fully gone
+        // before the first test step runs. This prevents Escape key workarounds from
+        // firing when a login modal is open later in the test.
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const dismissed = await dismissCommonPopups(page);
+            if (dismissed) {
+              onProgress({ type: 'info', message: `Dismissed popup(s) on attempt ${attempt + 1}` });
+            }
+          } catch (popupErr) {
+            console.warn(`[Scripted Test] dismissCommonPopups attempt ${attempt + 1} failed: ${popupErr.message}`);
+          }
+          // Short wait between attempts so async banners have time to appear/disappear
+          await page.waitForTimeout(1000);
+        }
+
+        // Final settle wait to let any remaining animations complete
+        await page.waitForTimeout(500);
+
         steps.push({
           name: `Navigate to ${url}`,
           action: 'navigate',
@@ -138,6 +161,7 @@ export async function runScriptedTest(options) {
           screenshot: await captureScreenshot(page),
           reason: ''
         });
+        throw new Error(`Initial navigation failed: ${err.message}`);
       }
     }
 
@@ -168,6 +192,14 @@ export async function runScriptedTest(options) {
           ? `✅ Step ${i + 1} passed`
           : `❌ Step ${i + 1} failed: ${stepResult.error}`
       });
+
+      if (stepResult.status === 'failed') {
+        onProgress({
+          type: 'info',
+          message: `Step ${i + 1} failed. Halting further step execution and generating report.`
+        });
+        break;
+      }
     }
 
   } catch (error) {
@@ -251,10 +283,18 @@ async function executeActionWithRetry(page, action, selector, value, stepName) {
     const stepStart = Date.now();
 
     try {
-      await executeAction(page, action, selector, value);
+      const interactionResult = await executeAction(page, action, selector, value);
 
       // Capture screenshot after successful action
       const screenshot = await captureScreenshot(page);
+
+      let reason = '';
+      if (interactionResult && interactionResult.healed) {
+        reason = `Self-healed: ${interactionResult.healMethod} -> ${interactionResult.resolvedSelector}`;
+      }
+      if (attempt > 1) {
+        reason = reason ? `${reason} (Passed on retry #${attempt})` : `Passed on retry #${attempt}`;
+      }
 
       return {
         name: stepName,
@@ -265,7 +305,7 @@ async function executeActionWithRetry(page, action, selector, value, stepName) {
         duration: Date.now() - stepStart,
         error: null,
         screenshot,
-        reason: attempt > 1 ? `Passed on retry #${attempt}` : ''
+        reason
       };
 
     } catch (error) {
@@ -304,28 +344,39 @@ async function executeActionWithRetry(page, action, selector, value, stepName) {
  * @param {string} value - Value parameter
  */
 async function executeAction(page, action, selector, value) {
+  let interactionResult = null;
   switch (action) {
-    case 'navigate':
-      await page.goto(value || selector, {
+    case 'navigate': {
+      // Guard against LLM-generated placeholder values like "empty", "N/A", "none", etc.
+      const navUrl = [value, selector].find(
+        v => v && v.trim().length > 0 && /^https?:\/\//i.test(v.trim())
+      );
+      if (!navUrl) throw new Error(`Navigate action has no valid URL. Selector: "${selector}", Value: "${value}"`);
+      await page.goto(navUrl.trim(), {
         waitUntil: 'domcontentloaded',
         timeout: ACTION_TIMEOUT_MS
       });
+      // Dismiss any popups that appear after navigation (e.g. cookie banners)
+      await page.waitForTimeout(1000);
+      try { await dismissCommonPopups(page); } catch (_) {}
+      await page.waitForTimeout(500);
       break;
+    }
 
     case 'click':
       if (!selector) throw new Error('Click action requires a Selector');
-      await page.waitForSelector(selector, { timeout: ACTION_TIMEOUT_MS });
-      await page.locator(selector).first().click();
-      // Wait briefly for any navigation/animation
-      await page.waitForTimeout(500);
+      interactionResult = await executeInteraction(page, 'click', selector, '', ACTION_TIMEOUT_MS);
+      if (interactionResult.status === 'failed') throw new Error(interactionResult.error);
+       // Wait for navigation/animation — increased to 1500ms so modal open animations
+       // (e.g. login modal slide-in) have time to fully complete before the next step.
+      await page.waitForTimeout(1500);
       break;
 
     case 'fill':
       if (!selector) throw new Error('Fill action requires a Selector');
       if (!value) throw new Error('Fill action requires a Value');
-      await page.waitForSelector(selector, { timeout: ACTION_TIMEOUT_MS });
-      await page.locator(selector).first().clear();
-      await page.locator(selector).first().fill(value);
+      interactionResult = await executeInteraction(page, 'fill', selector, value, ACTION_TIMEOUT_MS);
+      if (interactionResult.status === 'failed') throw new Error(interactionResult.error);
       break;
 
     case 'screenshot':
@@ -342,6 +393,7 @@ async function executeAction(page, action, selector, value) {
     default:
       throw new Error(`Unknown action: ${action}`);
   }
+  return interactionResult;
 }
 
 

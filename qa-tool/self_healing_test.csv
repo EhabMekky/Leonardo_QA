@@ -1,0 +1,9 @@
+Action,Selector,Value
+fill,#covered-input,modal-username
+click,#covered-btn,
+click,#obstructed-btn,
+click,#login-submit,
+fill,.user-email,test-email-user
+fill,#coord-label,coordinate-typing-text
+click,#covered-btn,
+screenshot,,

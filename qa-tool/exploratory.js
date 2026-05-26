@@ -14,6 +14,7 @@
 import { chromium } from 'playwright';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { executeInteraction, dismissCommonPopups } from './interaction-helper.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,40 +22,33 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
 const DEFAULT_MODEL = 'qwen2.5-coder:7b';
 const MAX_EXPLORATION_ROUNDS = 8;
-const MAX_ACTIONS_PER_ROUND = 6;
+const MAX_ACTIONS_PER_ROUND = 5;
 const ACTION_TIMEOUT_MS = 30000;
 const OLLAMA_TIMEOUT_MS = 120000;
+const MAX_RETRIES = 3;
+const RETRY_WAIT_MS = 5000;
+/** Max executed steps to include in history injected into each prompt (keeps tokens manageable) */
+const MAX_HISTORY_IN_PROMPT = 12;
 
 /** System prompt for the AI explorer */
-const SYSTEM_PROMPT = `You are a QA automation expert. Explore this website systematically:
-- Click all major navigation links
-- Fill any visible forms with realistic test data
-- Validate that buttons and links work
-- Take screenshots of each page section
-- Identify broken elements or console errors
-- Document any bugs found
+const SYSTEM_PROMPT = `You are a QA automation expert. Your job is to explore a website and generate Playwright test actions.
 
-Generate a JSON array of Playwright actions. Each action must be an object with these fields:
+Generate a JSON array of Playwright actions. Each action must be an object:
 - "action": one of "navigate", "click", "fill", "screenshot", "wait", "scroll"
-- "selector": CSS selector for the target element (for click, fill, scroll)
-- "value": value to input (for fill), URL (for navigate), milliseconds (for wait), or filename (for screenshot)
-- "reason": brief explanation of why this action is the next logical step
+- "selector": CSS selector for the element (required for click, fill, scroll)
+- "value": text to type (fill), URL (navigate), or milliseconds (wait)
+- "reason": one short sentence explaining this action
 
-IMPORTANT RULES:
-1. Return ONLY a valid JSON array, no additional text
-2. Use realistic test data for form fills (e.g., "John Doe", "test@example.com", "+1234567890")
-3. Prefer CSS selectors that are stable (IDs, data-testid, aria-label)
-4. Include screenshot actions between major navigation changes
-5. Don't repeat the same action twice
-6. When exploration is complete, return: [{"action": "done", "reason": "Exploration complete"}]
+RULES (follow strictly):
+1. Return ONLY the raw JSON array. No markdown, no explanation, no code fences.
+2. Do NOT repeat any action that appears in the "Already executed" history.
+3. Use realistic test data: "John Doe", "test@example.com", "Pass@1234"
+4. Prefer stable selectors: IDs (#id), name attributes ([name="x"]), aria-label, data-testid.
+5. Generate at most ${MAX_ACTIONS_PER_ROUND} actions.
+6. If nothing meaningful is left to do, return exactly: [{"action":"done","reason":"Exploration complete"}]
 
-Example response:
-[
-  {"action": "screenshot", "value": "initial-state.png", "reason": "Capture initial page state"},
-  {"action": "click", "selector": "nav a:first-child", "reason": "Click first navigation link"},
-  {"action": "screenshot", "value": "after-nav.png", "reason": "Capture state after navigation"},
-  {"action": "fill", "selector": "input[type=email]", "value": "test@example.com", "reason": "Fill email field with test data"}
-]`;
+Example:
+[{"action":"screenshot","reason":"Capture initial state"},{"action":"click","selector":"#login-btn","reason":"Open login form"}]`;
 
 
 /**
@@ -205,11 +199,17 @@ export async function runExploratoryTest(options) {
 
     // --- Handle common popups (cookie banners, etc.) ---
     onProgress({ type: 'info', message: 'Checking for popups...' });
-    await handleCommonPopups(page);
+    try {
+      await dismissCommonPopups(page);
+    } catch (popupErr) {
+      console.warn(`[Exploratory Test] Failed to run dismissCommonPopups: ${popupErr.message}`);
+    }
 
     // --- Exploration Loop ---
     let explorationComplete = false;
     let totalActionsExecuted = 0;
+    /** Compact history of already-executed actions — injected into every prompt */
+    const executedHistory = [];
 
     for (let round = 1; round <= MAX_EXPLORATION_ROUNDS && !explorationComplete; round++) {
       onProgress({
@@ -220,10 +220,10 @@ export async function runExploratoryTest(options) {
       // Extract current page context
       const pageContext = await extractPageContext(page);
 
-      // Query Ollama for next actions
+      // Query Ollama for next actions, passing executed history to prevent repetition/hallucination
       let actions;
       try {
-        actions = await queryOllamaForActions(ollamaUrl, model, url, pageContext, round);
+        actions = await queryOllamaForActions(ollamaUrl, model, url, pageContext, round, executedHistory);
       } catch (err) {
         onProgress({ type: 'error', message: `Ollama query failed: ${err.message}` });
         steps.push({
@@ -268,6 +268,14 @@ export async function runExploratoryTest(options) {
         const stepResult = await executeExploratoryAction(page, actionDef, stepName);
         steps.push(stepResult);
 
+        // Record this action in history so future rounds know it was attempted
+        executedHistory.push({
+          action: actionDef.action,
+          selector: actionDef.selector || '',
+          value: actionDef.value || '',
+          status: stepResult.status
+        });
+
         onProgress({
           type: 'step-result',
           step: totalActionsExecuted,
@@ -276,6 +284,15 @@ export async function runExploratoryTest(options) {
             ? `✅ ${stepName}`
             : `❌ ${stepName}: ${stepResult.error}`
         });
+
+        if (stepResult.status === 'failed') {
+          onProgress({
+            type: 'info',
+            message: `Step ${totalActionsExecuted} failed. Halting further action execution and generating report.`
+          });
+          explorationComplete = true;
+          break;
+        }
 
         // Brief pause between actions
         await page.waitForTimeout(300);
@@ -420,27 +437,42 @@ async function extractPageContext(page) {
 
 /**
  * Query Ollama for the next set of exploration actions
+ * @param {string[]} executedHistory - Summary of already-executed actions to prevent repetition
  */
-async function queryOllamaForActions(ollamaUrl, model, targetUrl, pageContext, round) {
-  const contextStr = `
-Current Page State (Round ${round}):
-- Title: ${pageContext.title}
-- URL: ${pageContext.url}
-- Headings: ${pageContext.headings.map(h => `${h.tag}: "${h.text}"`).join(', ') || 'none'}
-- Visible Links (${pageContext.links.length}): ${pageContext.links.slice(0, 8).map(l => `"${l.text}" (${l.selector})`).join(', ') || 'none'}
-- Visible Buttons (${pageContext.buttons.length}): ${pageContext.buttons.slice(0, 6).map(b => `"${b.text}" (${b.selector})`).join(', ') || 'none'}
-- Input Fields (${pageContext.inputs.length}): ${pageContext.inputs.slice(0, 6).map(i => `${i.type} name="${i.name}" placeholder="${i.placeholder}" (${i.selector})`).join(', ') || 'none'}
-- Forms: ${pageContext.forms.length} found
-`;
+async function queryOllamaForActions(ollamaUrl, model, targetUrl, pageContext, round, executedHistory = []) {
+  // Build a compact page context string — keep it short for small local models
+  const contextStr = [
+    `Page: "${pageContext.title}" | URL: ${pageContext.url}`,
+    pageContext.headings.length
+      ? `Headings: ${pageContext.headings.slice(0, 4).map(h => `"${h.text}"`).join(', ')}`
+      : '',
+    pageContext.inputs.length
+      ? `Inputs: ${pageContext.inputs.slice(0, 5).map(i => `${i.type}(${i.selector})`).join(', ')}`
+      : '',
+    pageContext.buttons.length
+      ? `Buttons: ${pageContext.buttons.slice(0, 5).map(b => `"${b.text}"(${b.selector})`).join(', ')}`
+      : '',
+    pageContext.links.length
+      ? `Links: ${pageContext.links.slice(0, 6).map(l => `"${l.text}"(${l.selector})`).join(', ')}`
+      : ''
+  ].filter(Boolean).join('\n');
 
-  const prompt = `${SYSTEM_PROMPT}
+  // Build the history block — crucial for preventing hallucination in later rounds
+  const historyBlock = executedHistory.length > 0
+    ? `\nAlready executed (DO NOT repeat these):\n${executedHistory
+        .slice(-MAX_HISTORY_IN_PROMPT)
+        .map((h, idx) => `  ${idx + 1}. ${h.action}${h.selector ? ' ' + h.selector : ''}${h.value ? ' = "' + h.value + '"' : ''} [${h.status}]`)
+        .join('\n')}`
+    : '';
 
+  const prompt = `${SYSTEM_PROMPT}${historyBlock}
+
+Current page state (Round ${round}/${MAX_EXPLORATION_ROUNDS}):
 ${contextStr}
 
 Target URL: ${targetUrl}
-Round: ${round} of ${MAX_EXPLORATION_ROUNDS}
 
-Based on the current page state, generate the next ${MAX_ACTIONS_PER_ROUND} Playwright actions to continue exploring this website. Return ONLY a JSON array.`;
+Generate the next actions. Return ONLY a valid JSON array:`;
 
   try {
     const controller = new AbortController();
@@ -452,8 +484,10 @@ Based on the current page state, generate the next ${MAX_ACTIONS_PER_ROUND} Play
       body: JSON.stringify({
         model,
         prompt,
-        stream: false,
-        format: 'json'
+        stream: false
+        // NOTE: Do NOT use format:'json' here — it forces constrained generation that causes
+        // small local models to fabricate syntactically valid but semantically wrong arrays.
+        // We handle JSON extraction robustly in extractActionsArray() instead.
       }),
       signal: controller.signal
     });
@@ -479,50 +513,104 @@ Based on the current page state, generate the next ${MAX_ACTIONS_PER_ROUND} Play
 
 
 /**
- * Extract JSON array of actions from Ollama response
+ * Extract JSON array of actions from Ollama response.
+ * Handles common local-LLM output quirks: markdown fences, trailing text,
+ * single objects, wrapped arrays, and minor JSON syntax errors.
  */
 function extractActionsArray(response) {
-  // Try direct parse
+  const text = response.trim();
+
+  // 1. Strip markdown code fences if present
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const cleaned = fenceMatch ? fenceMatch[1].trim() : text;
+
+  // 2. Try direct parse on cleaned text
   try {
-    const parsed = JSON.parse(response.trim());
-    if (Array.isArray(parsed)) return parsed;
-    // If it's an object with an array property, try common keys
-    if (parsed.actions && Array.isArray(parsed.actions)) return parsed.actions;
-    if (parsed.steps && Array.isArray(parsed.steps)) return parsed.steps;
-    // Single action object — wrap in array
-    if (parsed.action) return [parsed];
-  } catch (e) {
-    // Try to find JSON in markdown code blocks
-    const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (codeBlockMatch) {
-      try {
-        const parsed = JSON.parse(codeBlockMatch[1].trim());
-        if (Array.isArray(parsed)) return parsed;
-        if (parsed.action) return [parsed];
-      } catch (_) { /* continue */ }
-    }
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) return filterValidActions(parsed);
+    if (parsed.actions && Array.isArray(parsed.actions)) return filterValidActions(parsed.actions);
+    if (parsed.steps && Array.isArray(parsed.steps)) return filterValidActions(parsed.steps);
+    if (parsed.action) return filterValidActions([parsed]);
+  } catch (_) { /* fall through to extraction strategies */ }
 
-    // Try to find array pattern
-    const arrayStart = response.indexOf('[');
-    const arrayEnd = response.lastIndexOf(']');
-    if (arrayStart !== -1 && arrayEnd > arrayStart) {
-      try {
-        return JSON.parse(response.substring(arrayStart, arrayEnd + 1));
-      } catch (_) { /* continue */ }
-    }
-
-    // Try to find object pattern
-    const objStart = response.indexOf('{');
-    const objEnd = response.lastIndexOf('}');
-    if (objStart !== -1 && objEnd > objStart) {
-      try {
-        const parsed = JSON.parse(response.substring(objStart, objEnd + 1));
-        if (parsed.action) return [parsed];
-      } catch (_) { /* continue */ }
-    }
+  // 3. Extract first JSON array from the response (handles leading/trailing text)
+  const arrayStart = cleaned.indexOf('[');
+  const arrayEnd = cleaned.lastIndexOf(']');
+  if (arrayStart !== -1 && arrayEnd > arrayStart) {
+    try {
+      const parsed = JSON.parse(cleaned.substring(arrayStart, arrayEnd + 1));
+      if (Array.isArray(parsed)) return filterValidActions(parsed);
+    } catch (_) { /* fall through */ }
   }
 
-  throw new Error(`Unable to parse actions from Ollama response: ${response.substring(0, 200)}...`);
+  // 4. Extract first JSON object (single-action response from small models)
+  const objStart = cleaned.indexOf('{');
+  const objEnd = cleaned.lastIndexOf('}');
+  if (objStart !== -1 && objEnd > objStart) {
+    try {
+      const parsed = JSON.parse(cleaned.substring(objStart, objEnd + 1));
+      if (parsed.action) return filterValidActions([parsed]);
+    } catch (_) { /* fall through */ }
+  }
+
+  // 5. Last resort: attempt to repair truncated JSON by closing open brackets
+  try {
+    const repaired = repairTruncatedJson(cleaned);
+    const parsed = JSON.parse(repaired);
+    if (Array.isArray(parsed) && parsed.length > 0) return filterValidActions(parsed);
+  } catch (_) { /* give up */ }
+
+  throw new Error(`Unable to parse actions from Ollama response: ${text.substring(0, 300)}`);
+}
+
+
+/**
+ * Filter out objects missing a valid 'action' field, preventing hallucinated garbage
+ * from being passed to Playwright.
+ */
+const VALID_ACTIONS_SET = new Set(['navigate', 'click', 'fill', 'screenshot', 'wait', 'scroll', 'done']);
+function filterValidActions(arr) {
+  return arr.filter(item =>
+    item && typeof item === 'object' && typeof item.action === 'string' &&
+    VALID_ACTIONS_SET.has(item.action.toLowerCase())
+  );
+}
+
+
+/**
+ * Attempt to close an incomplete/truncated JSON array so it can be parsed.
+ * Handles the common case where local LLMs cut off mid-generation.
+ */
+function repairTruncatedJson(text) {
+  // Find the start of the array
+  const start = text.indexOf('[');
+  if (start === -1) return text;
+  let fragment = text.substring(start);
+
+  // Count open brackets/braces to find out what needs closing
+  let openBraces = 0;
+  let openBrackets = 0;
+  let inString = false;
+  let escape = false;
+
+  for (const ch of fragment) {
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') openBraces++;
+    else if (ch === '}') openBraces--;
+    else if (ch === '[') openBrackets++;
+    else if (ch === ']') openBrackets--;
+  }
+
+  // Close any open structures
+  let closing = '';
+  // Remove trailing comma before we close
+  fragment = fragment.replace(/,\s*$/, '');
+  for (let i = 0; i < openBraces; i++) closing += '}';
+  for (let i = 0; i < openBrackets; i++) closing += ']';
+  return fragment + closing;
 }
 
 
@@ -530,116 +618,99 @@ function extractActionsArray(response) {
  * Execute a single exploratory action with error handling
  */
 async function executeExploratoryAction(page, actionDef, stepName) {
-  const stepStart = Date.now();
   const { action, selector, value, reason = '' } = actionDef;
+  let lastError = null;
 
-  try {
-    switch (action) {
-      case 'navigate':
-        await page.goto(value || selector, {
-          waitUntil: 'domcontentloaded',
-          timeout: ACTION_TIMEOUT_MS
-        });
-        break;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const stepStart = Date.now();
 
-      case 'click':
-        if (!selector) throw new Error('Click requires a selector');
-        await page.waitForSelector(selector, { timeout: 10000 });
-        await page.locator(selector).first().click();
-        await page.waitForTimeout(500);
-        break;
-
-      case 'fill':
-        if (!selector) throw new Error('Fill requires a selector');
-        await page.waitForSelector(selector, { timeout: 10000 });
-        await page.locator(selector).first().clear();
-        await page.locator(selector).first().fill(value || 'test');
-        break;
-
-      case 'screenshot':
-        await page.waitForTimeout(300);
-        break;
-
-      case 'wait':
-        await page.waitForTimeout(parseInt(value) || 1000);
-        break;
-
-      case 'scroll':
-        if (selector) {
-          await page.locator(selector).first().scrollIntoViewIfNeeded();
-        } else {
-          await page.evaluate(() => window.scrollBy(0, 400));
-        }
-        await page.waitForTimeout(300);
-        break;
-
-      default:
-        throw new Error(`Unknown action: ${action}`);
-    }
-
-    const screenshot = await captureScreenshot(page);
-    return {
-      name: stepName,
-      action,
-      selector: selector || '',
-      value: value || '',
-      status: 'passed',
-      duration: Date.now() - stepStart,
-      error: null,
-      screenshot,
-      reason
-    };
-
-  } catch (error) {
-    const screenshot = await captureScreenshot(page);
-    return {
-      name: stepName,
-      action,
-      selector: selector || '',
-      value: value || '',
-      status: 'failed',
-      duration: Date.now() - stepStart,
-      error: error.message,
-      screenshot,
-      reason
-    };
-  }
-}
-
-
-/**
- * Handle common popups like cookie banners
- */
-async function handleCommonPopups(page) {
-  const acceptSelectors = [
-    'button:has-text("Accept")',
-    'button:has-text("Accept All")',
-    'button:has-text("Akzeptieren")',
-    'button:has-text("Agree")',
-    'button:has-text("OK")',
-    'button:has-text("Got it")',
-    '[data-testid="cookie-accept"]',
-    '#onetrust-accept-btn-handler',
-    '.cookie-accept',
-  ];
-
-  for (const selector of acceptSelectors) {
     try {
-      const element = await page.$(selector);
-      if (element) {
-        const isVisible = await element.isVisible();
-        if (isVisible) {
-          await element.click();
-          console.log(`✅ Dismissed popup with: ${selector}`);
+      let interactionResult = null;
+      switch (action) {
+        case 'navigate':
+          await page.goto(value || selector, {
+            waitUntil: 'domcontentloaded',
+            timeout: ACTION_TIMEOUT_MS
+          });
+          break;
+
+        case 'click':
+          if (!selector) throw new Error('Click requires a selector');
+          interactionResult = await executeInteraction(page, 'click', selector, '', 8000);
+          if (interactionResult.status === 'failed') throw new Error(interactionResult.error);
           await page.waitForTimeout(500);
-          return;
-        }
+          break;
+
+        case 'fill':
+          if (!selector) throw new Error('Fill requires a selector');
+          interactionResult = await executeInteraction(page, 'fill', selector, value || 'test', 8000);
+          if (interactionResult.status === 'failed') throw new Error(interactionResult.error);
+          break;
+
+        case 'screenshot':
+          await page.waitForTimeout(300);
+          break;
+
+        case 'wait':
+          await page.waitForTimeout(parseInt(value) || 1000);
+          break;
+
+        case 'scroll':
+          interactionResult = await executeInteraction(page, 'scroll', selector, '', 8000);
+          if (interactionResult.status === 'failed') throw new Error(interactionResult.error);
+          await page.waitForTimeout(300);
+          break;
+
+        default:
+          throw new Error(`Unknown action: ${action}`);
       }
-    } catch (_) {
-      // Continue to next selector
+
+      const screenshot = await captureScreenshot(page);
+      let finalReason = reason;
+      if (interactionResult && interactionResult.healed) {
+        finalReason = reason
+          ? `${reason} (Self-healed: ${interactionResult.healMethod} -> ${interactionResult.resolvedSelector})`
+          : `Self-healed: ${interactionResult.healMethod} -> ${interactionResult.resolvedSelector}`;
+      }
+
+      return {
+        name: stepName,
+        action,
+        selector: selector || '',
+        value: value || '',
+        status: 'passed',
+        duration: Date.now() - stepStart,
+        error: null,
+        screenshot,
+        reason: attempt > 1 ? `${finalReason} (Passed on retry #${attempt})` : finalReason
+      };
+
+    } catch (error) {
+      lastError = error;
+      console.warn(`⚠️ Attempt ${attempt}/${MAX_RETRIES} failed for "${stepName}": ${error.message}`);
+
+      if (attempt < MAX_RETRIES) {
+        console.log(`   Waiting ${RETRY_WAIT_MS / 1000}s before retry...`);
+        await page.waitForTimeout(RETRY_WAIT_MS);
+      }
     }
   }
+
+  // All retries exhausted
+  const screenshot = await captureScreenshot(page);
+  return {
+    name: stepName,
+    action,
+    selector: selector || '',
+    value: value || '',
+    status: 'failed',
+    duration: 0,
+    error: lastError?.message || 'Unknown error',
+    screenshot,
+    reason: `${reason} (Failed after ${MAX_RETRIES} attempts)`
+  };
 }
+
 
 
 /**

@@ -342,16 +342,33 @@ function prepareCSVContent(rawText) {
   
   const firstLine = lines[0].toLowerCase();
   const hasHeader = firstLine.includes('action') && firstLine.includes('selector');
-  if (hasHeader) {
-    return rawText;
+  
+  // Define valid actions in scripted CSV mode
+  const validActions = ['navigate', 'click', 'fill', 'screenshot', 'wait'];
+  
+  // Check if every line looks like a valid CSV step (or header)
+  let looksLikeCSV = true;
+  const startIdx = hasHeader ? 1 : 0;
+  
+  if (lines.length <= startIdx) {
+    return null; // Empty or just header
   }
   
-  // If the first line contains a comma, check if it starts with a valid action
-  const firstLineHasComma = lines[0].includes(',');
-  if (firstLineHasComma) {
-    const firstWord = firstLine.split(',')[0].trim();
-    const validActions = ['navigate', 'click', 'fill', 'screenshot', 'wait'];
-    if (validActions.includes(firstWord)) {
+  for (let i = startIdx; i < lines.length; i++) {
+    const line = lines[i];
+    const parts = line.split(',');
+    const action = parts[0].trim().toLowerCase();
+    
+    if (!validActions.includes(action)) {
+      looksLikeCSV = false;
+      break;
+    }
+  }
+  
+  if (looksLikeCSV) {
+    if (hasHeader) {
+      return rawText;
+    } else {
       return `Action,Selector,Value\n${rawText}`;
     }
   }
@@ -363,28 +380,81 @@ function prepareCSVContent(rawText) {
  * Converts natural language description into valid CSV using Ollama
  */
 async function convertNaturalLanguageToCSV(text, model, ollamaUrl, targetUrl) {
-  const prompt = `You are a QA automation expert. Convert the following input into a structured CSV format with columns: Action,Selector,Value.
-The input might be explicit test steps OR a high-level scenario (e.g., "Test error handling if user add wrong username or password"). If it's a high-level scenario, break it down into logical, concrete steps (navigate, fill, click, etc.) to achieve the goal.
+  const baseUrl = targetUrl.replace(/\/$/, '');
+  const prompt = `You are a senior QA automation engineer specializing in Playwright end-to-end testing. Convert the test description below into a precise, executable CSV test plan.
 
-Target URL for this test: ${targetUrl}
+TARGET URL: ${targetUrl}
 
-Available actions:
-- navigate (Value: URL, Selector: empty)
-- click (Selector: CSS selector of the button/link, Value: empty)
-- fill (Selector: CSS selector, Value: text to type)
-- wait (Value: milliseconds, Selector: empty)
-- screenshot (Selector: empty, Value: empty)
+OUTPUT FORMAT RULES (STRICT):
+- Output ONLY valid CSV rows. Start with the header: Action,Selector,Value
+- Do NOT include markdown fences, backticks, comments, blank lines between rows, or any text outside the CSV.
+- Every row must have exactly 3 comma-separated columns. Empty columns must still have their comma (e.g. wait,,2000 or screenshot,,)
 
-Rules:
-1. Output ONLY the valid CSV content starting with "Action,Selector,Value" header.
-2. Do not include markdown code blocks (like \`\`\`csv) or any conversational text.
-3. Guess stable CSS selectors based on standard web practices (e.g. input[type="text"], input[name="username"], button[type="submit"], #user-name, #password, #login-button).
-4. For actions like "Notice error message" or "Verify...", convert them to a "screenshot" action to capture the state.
+ACTIONS:
+  navigate  | Selector: (empty)          | Value: full URL
+  click     | Selector: CSS selector     | Value: (empty)
+  fill      | Selector: CSS selector     | Value: text to type
+  wait      | Selector: (empty)          | Value: milliseconds
+  screenshot| Selector: (empty)          | Value: (empty)
 
-Input:
+SELECTOR PRIORITY — always prefer in this order:
+  1. ID attribute:           #login-button
+  2. name attribute:         input[name="username"], input[name="email"], input[name="password"]
+  3. type + tag:             input[type="email"], button[type="submit"]
+  4. data-* attributes:      [data-testid="submit"], [data-id="login"]
+  5. Unique class:           .login-submit (only if clearly unique)
+  6. Text match (last resort): button:has-text("Sign In")
+
+If the user explicitly provides a selector, URL, or text value — preserve it EXACTLY.
+
+CRITICAL PATTERNS:
+
+1. COOKIE/CONSENT BANNERS:
+   Real websites show cookie banners that load asynchronously after the page.
+   - After the first navigate, always add: wait,,2000
+   - The test engine dismisses banners automatically. Do NOT add click steps for cookie banners.
+
+2. MODAL/POPUP INTERACTIONS:
+   - If clicking an element (like a login or signup button) triggers an animated modal/popup dialog instead of navigating, always add: wait,,2000 (for modal animation).
+   - Use standard form selectors for inputs inside the modal (e.g., input[name="username"], input[name="password"], button[type="submit"]).
+
+3. PAGE NAVIGATION / STATE CHANGES:
+   - After clicking any link or button that navigates to a new page or triggers a major UI transition (like a header nav link, menu item, or redirect button), always add: wait,,1500.
+
+4. VERIFICATION STEPS:
+   - Any step containing: "verify", "assert", "check", "confirm", "should see", or "notice"
+     → Replace with: screenshot,,
+   - Always add a screenshot after: login success, adding items to cart, and cart/checkout page load.
+
+EXAMPLE 1 — Modal login then navigate and click:
+Input: Login as user@test.com / Pass123 then go to shop and add a product to cart
+Output:
+Action,Selector,Value
+wait,,2000
+click,.login-trigger,
+wait,,2000
+fill,input[name="username"],user@test.com
+fill,input[name="password"],Pass123
+click,button[type="submit"],
+screenshot,,
+click,.nav-shop,
+wait,,1500
+click,.add-to-cart-btn,
+wait,,1000
+screenshot,,
+navigate,,${baseUrl}/cart
+screenshot,,
+
+EXAMPLE 2 — Verify cart item:
+Input: Verify the selected product exists in the cart
+Output:
+Action,Selector,Value
+screenshot,,
+
+--- USER INPUT BELOW ---
 ${text}
 
-Output:`;
+CSV OUTPUT (header + rows only, nothing else):`;
 
   try {
     const response = await fetch(`${ollamaUrl}/api/generate`, {
