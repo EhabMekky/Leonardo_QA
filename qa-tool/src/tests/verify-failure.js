@@ -8,14 +8,14 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { runScriptedTest } from './scripted.js';
-import { generateReport } from './report-generator.js';
+import { runScriptedTest } from '../engines/scripted.js';
+import { generateReport } from '../utils/report-generator.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function run() {
   try {
-    const csvPath = path.join(__dirname, 'validation_failure.csv');
+    const csvPath = path.join(__dirname, '..', '..', 'data', 'validation_failure.csv');
     console.log(`📖 Reading test CSV from: ${csvPath}`);
     const csvContent = fs.readFileSync(csvPath, 'utf-8');
     

@@ -11,7 +11,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REGISTRY_PATH = path.join(__dirname, 'locator-registry.json');
+const REGISTRY_PATH = path.join(__dirname, '..', '..', 'data', 'locator-registry.json');
 
 // Pathname Normalization & Key Generator
 function getRegistryKey(pageUrl, originalSelector) {

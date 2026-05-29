@@ -122,7 +122,7 @@ export async function runScriptedTest(options) {
       });
     }
 
-    videoDir = runId ? path.join(__dirname, 'reports', runId, 'videos') : null;
+    videoDir = runId ? path.join(__dirname, '..', '..', 'reports', runId, 'videos') : null;
     const contextOptions = {
       viewport: { width: 1280, height: 720 },
       ...(videoDir ? { recordVideo: { dir: videoDir } } : {})
@@ -314,7 +314,7 @@ export async function runScriptedTest(options) {
       if (videoPath && fs.existsSync(videoPath)) {
         const hasFailure = steps.some(s => s.status === 'failed');
         if (hasFailure) {
-          const targetVideoPath = path.join(__dirname, 'reports', runId, `video-${browserName}.webm`);
+          const targetVideoPath = path.join(__dirname, '..', '..', 'reports', runId, `video-${browserName}.webm`);
           try {
             fs.mkdirSync(path.dirname(targetVideoPath), { recursive: true });
             fs.copyFileSync(videoPath, targetVideoPath);

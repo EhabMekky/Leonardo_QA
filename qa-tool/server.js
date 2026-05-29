@@ -17,10 +17,10 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { runScriptedTest } from './scripted.js';
-import { runExploratoryTest, checkOllamaStatus } from './exploratory.js';
-import { generateReport } from './report-generator.js';
-import { generateDocxReport } from './docx-generator.js';
+import { runScriptedTest } from './src/engines/scripted.js';
+import { runExploratoryTest, checkOllamaStatus } from './src/engines/exploratory.js';
+import { generateReport } from './src/utils/report-generator.js';
+import { generateDocxReport } from './src/utils/docx-generator.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;

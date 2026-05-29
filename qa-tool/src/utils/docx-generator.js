@@ -98,7 +98,7 @@ function createMultiLineCell(lines, isZebra = false) {
  * @returns {string} Path to the generated docx file
  */
 export async function generateDocxReport(runId, results) {
-  const reportsDir = path.join(__dirname, 'reports', runId);
+  const reportsDir = path.join(__dirname, '..', '..', 'reports', runId);
   if (!fs.existsSync(reportsDir)) {
     fs.mkdirSync(reportsDir, { recursive: true });
   }

@@ -22,7 +22,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * @returns {string} Path to the generated report
  */
 export function generateReport(runId, testResults) {
-  const reportsDir = path.join(__dirname, 'reports', runId);
+  const reportsDir = path.join(__dirname, '..', '..', 'reports', runId);
   if (!fs.existsSync(reportsDir)) {
     fs.mkdirSync(reportsDir, { recursive: true });
   }
@@ -117,7 +117,7 @@ function buildReportHTML(runId, results) {
         
         // Check if video file exists on disk
         const videoUrl = `/reports/${runId}/video-${b}.webm`;
-        const videoPath = path.join(__dirname, 'reports', runId, `video-${b}.webm`);
+        const videoPath = path.join(__dirname, '..', '..', 'reports', runId, `video-${b}.webm`);
         const hasVideo = fs.existsSync(videoPath);
         
         const videoPlayerHTML = hasVideo

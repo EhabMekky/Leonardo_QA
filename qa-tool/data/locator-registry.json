@@ -7,7 +7,7 @@
     ],
     "lastHealed": "2026-05-28T16:18:52.115Z",
     "healCount": 2,
-    "successRuns": 14,
+    "successRuns": 15,
     "healed": "Coordinates(406, 335)"
   },
   "/test-self-healing.html:.user-email": {
@@ -18,7 +18,7 @@
     "healed": "xpath=//*[@id=\"user-email-address\"]",
     "lastHealed": "2026-05-28T15:51:15.834Z",
     "healCount": 1,
-    "successRuns": 15
+    "successRuns": 16
   },
   "/test-self-healing.html:#coord-label": {
     "original": "#coord-label",
@@ -28,7 +28,7 @@
     "healed": "Coordinates(394, 448)",
     "lastHealed": "2026-05-28T15:51:19.323Z",
     "healCount": 1,
-    "successRuns": 15
+    "successRuns": 16
   },
   "/:.login-trigger": {
     "original": ".login-trigger",
@@ -230,6 +230,6 @@
     "healed": "xpath=//*[@id=\"login\"]/button[1]",
     "lastHealed": "2026-05-29T00:27:31.954Z",
     "healCount": 1,
-    "successRuns": 3
+    "successRuns": 6
   }
 }

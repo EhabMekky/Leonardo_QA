@@ -8,21 +8,21 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { runScriptedTest } from './scripted.js';
-import { generateReport } from './report-generator.js';
+import { runScriptedTest } from '../engines/scripted.js';
+import { generateReport } from '../utils/report-generator.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // 1. Start a local server to serve public sandbox page
 const app = express();
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '..', '..', 'public')));
 const PORT = 3006;
 
 const server = app.listen(PORT, async () => {
   console.log(`\n🚀 Verification server started on http://localhost:${PORT}`);
 
   try {
-    const csvPath = path.join(__dirname, 'self_healing_test.csv');
+    const csvPath = path.join(__dirname, '..', '..', 'data', 'self_healing_test.csv');
     console.log(`📖 Reading test CSV from: ${csvPath}`);
     const csvContent = fs.readFileSync(csvPath, 'utf-8');
 

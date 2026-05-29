@@ -15,7 +15,7 @@ process.env.PORT = PORT;
 
 // Start server
 console.log('🚀 Launching QA server for validation...');
-const serverImport = await import('./server.js');
+const serverImport = await import('../../server.js');
 const app = serverImport.default;
 
 // Wait a bit for server to fully initialize
@@ -101,7 +101,7 @@ async function runTestMode(type) {
                   console.log(`\n🎉 Test completed: ${data.message}`);
                   
                   // Check output files
-                  const reportDir = path.join(__dirname, 'reports', runId);
+                  const reportDir = path.join(__dirname, '..', '..', 'reports', runId);
                   const htmlExists = fs.existsSync(path.join(reportDir, 'index.html'));
                   console.log(`HTML Report exists: ${htmlExists ? '✅ Yes' : '❌ No'}`);
 
