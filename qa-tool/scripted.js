@@ -11,12 +11,12 @@
  * Supported actions: navigate, click, fill, screenshot, wait
  */
 
-import { chromium } from 'playwright';
+import { chromium, firefox, devices } from 'playwright';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { executeInteraction, dismissCommonPopups } from './interaction-helper.js';
+import { executeInteraction, dismissCommonPopups, runFailureDiagnostics } from './interaction-helper.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -24,9 +24,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const VALID_ACTIONS = ['navigate', 'click', 'fill', 'screenshot', 'wait'];
 
 /** Default retry configuration */
-const MAX_RETRIES = 3;
-const RETRY_WAIT_MS = 5000;
-const ACTION_TIMEOUT_MS = 30000;
+const MAX_RETRIES = 1;
+const RETRY_WAIT_MS = 1000;
+const ACTION_TIMEOUT_MS = 5000;
 
 /**
  * Run a scripted test from a CSV file buffer
@@ -35,6 +35,8 @@ const ACTION_TIMEOUT_MS = 30000;
  * @param {Array} options.cookies - Array of cookie objects to inject
  * @param {Buffer|string} options.csvContent - CSV file content (buffer or string)
  * @param {string} options.model - Ollama model name (for report metadata)
+ * @param {string} options.ollamaUrl - Ollama base URL
+ * @param {string} options.runId - Unique run ID
  * @param {Function} options.onProgress - Callback for progress updates (step, status, message)
  * @returns {Object} Test results with steps, screenshots, errors, duration
  */
@@ -44,7 +46,12 @@ export async function runScriptedTest(options) {
     cookies = [],
     csvContent,
     model = 'N/A',
-    onProgress = () => {}
+    ollamaUrl = 'http://127.0.0.1:11434',
+    runId,
+    onProgress = () => {},
+    signal,
+    browserName = 'chrome',
+    deviceProfile = 'desktop'
   } = options;
 
   const startTime = new Date();
@@ -53,6 +60,27 @@ export async function runScriptedTest(options) {
   let browser = null;
   let context = null;
   let page = null;
+  let videoDir = null;
+
+  const abortHandler = async () => {
+    onProgress({ type: 'status', message: 'Test cancelled by user.' });
+    if (page) {
+      try { await page.close(); } catch (_) {}
+    }
+    if (context) {
+      try { await context.close(); } catch (_) {}
+    }
+    if (browser) {
+      try { await browser.close(); } catch (_) {}
+    }
+  };
+
+  if (signal) {
+    if (signal.aborted) {
+      throw new Error('Test run cancelled by user');
+    }
+    signal.addEventListener('abort', abortHandler);
+  }
 
   try {
     // --- Parse CSV ---
@@ -75,15 +103,41 @@ export async function runScriptedTest(options) {
     }
 
     // --- Launch Browser ---
-    onProgress({ type: 'status', message: 'Launching browser...' });
-    browser = await chromium.launch({
-      headless: false,
-      slowMo: 300
-    });
+    onProgress({ type: 'status', message: `Launching browser ${browserName}...` });
+    if (browserName === 'firefox') {
+      browser = await firefox.launch({
+        headless: false,
+        slowMo: 300
+      });
+    } else if (browserName === 'edge') {
+      browser = await chromium.launch({
+        headless: false,
+        slowMo: 300,
+        channel: 'msedge'
+      });
+    } else {
+      browser = await chromium.launch({
+        headless: false,
+        slowMo: 300
+      });
+    }
 
-    context = await browser.newContext({
-      viewport: { width: 1280, height: 720 }
-    });
+    videoDir = runId ? path.join(__dirname, 'reports', runId, 'videos') : null;
+    const contextOptions = {
+      viewport: { width: 1280, height: 720 },
+      ...(videoDir ? { recordVideo: { dir: videoDir } } : {})
+    };
+
+    if (deviceProfile && deviceProfile !== 'desktop') {
+      let profileName = deviceProfile;
+      if (profileName === 'Galaxy S22' && !devices[profileName]) {
+        profileName = 'Galaxy S24';
+      }
+      const deviceConfig = devices[profileName] || {};
+      Object.assign(contextOptions, deviceConfig);
+    }
+
+    context = await browser.newContext(contextOptions);
 
     // --- Inject cookies ---
     if (cookies.length > 0) {
@@ -150,6 +204,16 @@ export async function runScriptedTest(options) {
           reason: ''
         });
       } catch (err) {
+        const diagnostics = await runFailureDiagnostics({
+          page,
+          action: 'navigate',
+          selector: '',
+          value: url,
+          errorMsg: err.message,
+          model,
+          ollamaUrl
+        });
+
         steps.push({
           name: `Navigate to ${url}`,
           action: 'navigate',
@@ -159,7 +223,8 @@ export async function runScriptedTest(options) {
           duration: Date.now() - navStart,
           error: err.message,
           screenshot: await captureScreenshot(page),
-          reason: ''
+          reason: '',
+          diagnostics
         });
         throw new Error(`Initial navigation failed: ${err.message}`);
       }
@@ -167,6 +232,9 @@ export async function runScriptedTest(options) {
 
     // --- Execute each CSV row ---
     for (let i = 0; i < records.length; i++) {
+      if (signal?.aborted) {
+        throw new Error('Test run cancelled by user');
+      }
       const record = records[i];
       const action = record.Action?.toLowerCase().trim();
       const selector = record.Selector?.trim() || '';
@@ -180,7 +248,7 @@ export async function runScriptedTest(options) {
         message: `Step ${i + 1}/${records.length}: ${stepName}`
       });
 
-      const stepResult = await executeActionWithRetry(page, action, selector, value, stepName);
+      const stepResult = await executeActionWithRetry(page, action, selector, value, stepName, signal, model, ollamaUrl);
       steps.push(stepResult);
 
       onProgress({
@@ -216,15 +284,51 @@ export async function runScriptedTest(options) {
       reason: ''
     });
   } finally {
+    if (signal) {
+      signal.removeEventListener('abort', abortHandler);
+    }
     // --- Cleanup ---
-    if (page) {
-      try { await page.close(); } catch (_) { /* ignore */ }
-    }
-    if (context) {
-      try { await context.close(); } catch (_) { /* ignore */ }
-    }
-    if (browser) {
-      try { await browser.close(); } catch (_) { /* ignore */ }
+    if (!signal?.aborted) {
+      let videoPath = null;
+      if (videoDir && page) {
+        try {
+          const video = page.video();
+          if (video) {
+            videoPath = await video.path();
+          }
+        } catch (err) {
+          console.warn('Failed to retrieve video path:', err);
+        }
+      }
+
+      if (page) {
+        try { await page.close(); } catch (_) { /* ignore */ }
+      }
+      if (context) {
+        try { await context.close(); } catch (_) { /* ignore */ }
+      }
+      if (browser) {
+        try { await browser.close(); } catch (_) { /* ignore */ }
+      }
+
+      if (videoPath && fs.existsSync(videoPath)) {
+        const hasFailure = steps.some(s => s.status === 'failed');
+        if (hasFailure) {
+          const targetVideoPath = path.join(__dirname, 'reports', runId, `video-${browserName}.webm`);
+          try {
+            fs.mkdirSync(path.dirname(targetVideoPath), { recursive: true });
+            fs.copyFileSync(videoPath, targetVideoPath);
+            onProgress({ type: 'info', message: `Video recorded for failure scenario: video-${browserName}.webm` });
+          } catch (err) {
+            console.warn(`Failed to copy video to final destination: ${err.message}`);
+          }
+        }
+        try {
+          fs.rmSync(videoDir, { recursive: true, force: true });
+        } catch (err) {
+          console.warn(`Failed to clean up temporary videos folder: ${err.message}`);
+        }
+      }
     }
   }
 
@@ -274,16 +378,26 @@ function parseCSV(csvString) {
  * @param {string} selector - CSS selector for the target element
  * @param {string} value - Value for fill/navigate/wait actions
  * @param {string} stepName - Human-readable step name
+ * @param {Object} signal - Abort signal
+ * @param {string} model - Model name
+ * @param {string} ollamaUrl - Ollama URL
  * @returns {Object} Step result with status, duration, error, screenshot
  */
-async function executeActionWithRetry(page, action, selector, value, stepName) {
+async function executeActionWithRetry(page, action, selector, value, stepName, signal, model, ollamaUrl) {
   let lastError = null;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    if (signal?.aborted) {
+      throw new Error('Test run cancelled by user');
+    }
     const stepStart = Date.now();
 
     try {
       const interactionResult = await executeAction(page, action, selector, value);
+
+      if (signal?.aborted) {
+        throw new Error('Test run cancelled by user');
+      }
 
       // Capture screenshot after successful action
       const screenshot = await captureScreenshot(page);
@@ -309,6 +423,9 @@ async function executeActionWithRetry(page, action, selector, value, stepName) {
       };
 
     } catch (error) {
+      if (signal?.aborted) {
+        throw new Error('Test run cancelled by user');
+      }
       lastError = error;
       console.warn(`⚠️ Attempt ${attempt}/${MAX_RETRIES} failed for "${stepName}": ${error.message}`);
 
@@ -321,7 +438,21 @@ async function executeActionWithRetry(page, action, selector, value, stepName) {
   }
 
   // All retries exhausted
+  if (signal?.aborted) {
+    throw new Error('Test run cancelled by user');
+  }
   const screenshot = await captureScreenshot(page);
+
+  const diagnostics = await runFailureDiagnostics({
+    page,
+    action,
+    selector,
+    value,
+    errorMsg: lastError?.message || 'Unknown error',
+    model,
+    ollamaUrl
+  });
+
   return {
     name: stepName,
     action,
@@ -331,7 +462,8 @@ async function executeActionWithRetry(page, action, selector, value, stepName) {
     duration: 0,
     error: lastError?.message || 'Unknown error',
     screenshot,
-    reason: `Failed after ${MAX_RETRIES} attempts`
+    reason: `Failed after ${MAX_RETRIES} attempts`,
+    diagnostics
   };
 }
 

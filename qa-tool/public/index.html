@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QA Automation Tool — AI-Powered Testing</title>
-  <meta name="description" content="Web-based QA automation tool with AI exploratory testing via Ollama and Playwright scripted test execution.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="description"
+    content="Web-based QA automation tool with AI exploratory testing via Ollama and Playwright scripted test execution.">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
@@ -28,39 +32,86 @@
     }
   </script>
   <style>
-    body { font-family: 'Inter', system-ui, sans-serif; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+    }
 
     /* Custom scrollbar */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #1e293b; }
-    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 99px; }
-    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 99px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
 
     /* Animations */
     @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
-      50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
-    }
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    @keyframes spin-slow {
-      to { transform: rotate(360deg); }
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    .animate-fade-in-up { animation: fadeInUp 0.4s ease-out; }
-    .animate-pulse-glow { animation: pulse-glow 2s infinite; }
+    @keyframes pulse-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+      }
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: -200% 0;
+      }
+
+      100% {
+        background-position: 200% 0;
+      }
+    }
+
+    @keyframes spin-slow {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .animate-fade-in-up {
+      animation: fadeInUp 0.4s ease-out;
+    }
+
+    .animate-pulse-glow {
+      animation: pulse-glow 2s infinite;
+    }
+
     .animate-shimmer {
-      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
       background-size: 200% 100%;
       animation: shimmer 2s infinite;
     }
-    .animate-spin-slow { animation: spin-slow 1.5s linear infinite; }
+
+    .animate-spin-slow {
+      animation: spin-slow 1.5s linear infinite;
+    }
 
     /* Glass morphism card */
     .glass-card {
@@ -74,21 +125,33 @@
       border: 2px dashed #475569;
       transition: all 0.3s ease;
     }
+
     .dropzone.drag-over {
       border-color: #818cf8;
       background: rgba(99, 102, 241, 0.08);
     }
+
     .dropzone:hover {
       border-color: #64748b;
     }
 
     /* Toggle switch */
-    .toggle-checkbox:checked + .toggle-label { background: #6366f1; }
-    .toggle-checkbox:checked + .toggle-label .toggle-dot { transform: translateX(100%); }
-    .toggle-dot { transition: transform 0.2s ease; }
+    .toggle-checkbox:checked+.toggle-label {
+      background: #6366f1;
+    }
+
+    .toggle-checkbox:checked+.toggle-label .toggle-dot {
+      transform: translateX(100%);
+    }
+
+    .toggle-dot {
+      transition: transform 0.2s ease;
+    }
 
     /* Progress step animations */
-    .step-enter { animation: fadeInUp 0.3s ease-out; }
+    .step-enter {
+      animation: fadeInUp 0.3s ease-out;
+    }
 
     /* Gradient text */
     .gradient-text {
@@ -104,6 +167,7 @@
     }
   </style>
 </head>
+
 <body class="bg-surface-900 text-gray-100 min-h-screen">
 
   <!-- ======================= HEADER ======================= -->
@@ -113,7 +177,7 @@
         <!-- Logo -->
         <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center">
           <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <div>
@@ -123,7 +187,8 @@
       </div>
 
       <!-- Ollama Status Indicator -->
-      <div id="ollama-status" class="flex items-center gap-2 px-3 py-1.5 rounded-full glass-card cursor-pointer" onclick="checkOllamaStatus()" title="Click to refresh">
+      <div id="ollama-status" class="flex items-center gap-2 px-3 py-1.5 rounded-full glass-card cursor-pointer"
+        onclick="checkOllamaStatus()" title="Click to refresh">
         <span id="ollama-dot" class="w-2.5 h-2.5 rounded-full bg-surface-500 transition-colors duration-500"></span>
         <span id="ollama-label" class="text-xs font-medium text-surface-400">Checking Ollama...</span>
       </div>
@@ -153,33 +218,62 @@
 
           <!-- URL Input -->
           <div class="space-y-1.5">
-            <label for="url-input" class="block text-sm font-semibold text-gray-200">Target URL <span class="text-red-400">*</span></label>
+            <label for="url-input" class="block text-sm font-semibold text-gray-200">Target URL <span
+                class="text-red-400">*</span></label>
             <div class="relative">
-              <input
-                type="url"
-                id="url-input"
-                name="url"
-                required
-                placeholder="https://www.example.com"
-                class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-gray-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all"
-              >
+              <input type="url" id="url-input" name="url" required placeholder="https://www.example.com"
+                class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-gray-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
               <div class="absolute right-3 top-1/2 -translate-y-1/2 text-surface-500">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
               </div>
+            </div>
+          </div>
+
+          <!-- Target Browsers Section -->
+          <div class="space-y-1.5">
+            <label class="block text-sm font-semibold text-gray-200">Target Browsers</label>
+            <div class="grid grid-cols-3 gap-3">
+              <!-- Chrome -->
+              <label class="flex items-center gap-2 p-3 bg-surface-800 border border-surface-700 rounded-lg cursor-pointer hover:border-surface-600 transition-all select-none">
+                <input type="checkbox" name="browsers" value="chrome" checked class="w-4 h-4 text-brand-500 bg-surface-900 border-surface-700 rounded focus:ring-brand-500/50 focus:ring-2">
+                <span class="text-xs font-semibold text-gray-200">Chrome</span>
+              </label>
+              <!-- Firefox -->
+              <label class="flex items-center gap-2 p-3 bg-surface-800 border border-surface-700 rounded-lg cursor-pointer hover:border-surface-600 transition-all select-none">
+                <input type="checkbox" name="browsers" value="firefox" class="w-4 h-4 text-brand-500 bg-surface-900 border-surface-700 rounded focus:ring-brand-500/50 focus:ring-2">
+                <span class="text-xs font-semibold text-gray-200">Firefox</span>
+              </label>
+              <!-- Edge -->
+              <label class="flex items-center gap-2 p-3 bg-surface-800 border border-surface-700 rounded-lg cursor-pointer hover:border-surface-600 transition-all select-none">
+                <input type="checkbox" name="browsers" value="edge" class="w-4 h-4 text-brand-500 bg-surface-900 border-surface-700 rounded focus:ring-brand-500/50 focus:ring-2">
+                <span class="text-xs font-semibold text-gray-200">Edge</span>
+              </label>
             </div>
           </div>
 
           <!-- Model Selector -->
           <div class="space-y-1.5">
             <label for="model-select" class="block text-sm font-semibold text-gray-200">Ollama Model</label>
-            <select
-              id="model-select"
-              name="model"
-              class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer"
-            >
+            <select id="model-select" name="model"
+              class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer">
               <option value="qwen2.5-coder:7b">qwen2.5-coder:7b (default)</option>
+            </select>
+          </div>
+
+          <!-- Device Emulation Selector -->
+          <div class="space-y-1.5">
+            <label for="device-select" class="block text-sm font-semibold text-gray-200">Device Emulation</label>
+            <select id="device-select" name="deviceProfile"
+              class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer">
+              <option value="desktop">Desktop (1280x720)</option>
+              <option value="iPhone 14">iPhone 14 (Mobile)</option>
+              <option value="iPhone 14 Pro Max">iPhone 14 Pro Max (Mobile)</option>
+              <option value="Galaxy S22">Samsung Galaxy S22 (Mobile)</option>
+              <option value="Pixel 7">Google Pixel 7 (Mobile)</option>
+              <option value="iPad Pro 11">iPad Pro 11 (Tablet)</option>
             </select>
           </div>
 
@@ -188,14 +282,11 @@
             <label for="cookies-input" class="block text-sm font-semibold text-gray-200">
               Cookies <span class="text-surface-500 font-normal">(optional)</span>
             </label>
-            <textarea
-              id="cookies-input"
-              name="cookies"
-              rows="3"
+            <textarea id="cookies-input" name="cookies" rows="3"
               placeholder='[{"name":"session","value":"abc123","url":"https://example.com"}]'
-              class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-gray-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all font-mono text-xs resize-none"
-            ></textarea>
-            <p class="text-[11px] text-surface-500">JSON array format: [{"name":"...","value":"...","url":"https://..."}]</p>
+              class="w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-sm text-gray-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all font-mono text-xs resize-none"></textarea>
+            <p class="text-[11px] text-surface-500">JSON array format:
+              [{"name":"...","value":"...","url":"https://..."}]</p>
           </div>
 
           <!-- Test Steps Input Section -->
@@ -203,58 +294,52 @@
             <label class="block text-sm font-semibold text-gray-200">
               Test Steps CSV <span class="text-surface-500 font-normal">(optional)</span>
             </label>
-            
+
             <div class="glass-card rounded-lg p-4 space-y-4">
               <!-- Tabs Header -->
               <div class="flex border-b border-surface-700/50 pb-2">
-                <button
-                  type="button"
-                  id="tab-upload"
-                  onclick="switchTab('upload')"
-                  class="flex-1 pb-1.5 text-xs font-semibold text-brand-400 border-b-2 border-brand-500 focus:outline-none transition-all text-center"
-                >
+                <button type="button" id="tab-upload" onclick="switchTab('upload')"
+                  class="flex-1 pb-1.5 text-xs font-semibold text-brand-400 border-b-2 border-brand-500 focus:outline-none transition-all text-center">
                   📁 Upload CSV File
                 </button>
-                <button
-                  type="button"
-                  id="tab-write"
-                  onclick="switchTab('write')"
-                  class="flex-1 pb-1.5 text-xs font-semibold text-surface-400 border-b-2 border-transparent hover:text-gray-200 focus:outline-none transition-all text-center"
-                >
+                <button type="button" id="tab-write" onclick="switchTab('write')"
+                  class="flex-1 pb-1.5 text-xs font-semibold text-surface-400 border-b-2 border-transparent hover:text-gray-200 focus:outline-none transition-all text-center">
                   ✍️ Write Test Case
                 </button>
               </div>
 
               <!-- Tab 1: Upload CSV -->
               <div id="tab-content-upload" class="space-y-2">
-                <div
-                  id="csv-dropzone"
-                  class="dropzone rounded-lg p-6 text-center cursor-pointer transition-all"
-                  onclick="document.getElementById('csv-file').click()"
-                  ondragover="handleDragOver(event)"
-                  ondragleave="handleDragLeave(event)"
-                  ondrop="handleDrop(event)"
-                >
-                  <input type="file" id="csv-file" name="csvFile" accept=".csv" class="hidden" onchange="handleFileSelect(event)">
+                <div id="csv-dropzone" class="dropzone rounded-lg p-6 text-center cursor-pointer transition-all"
+                  onclick="document.getElementById('csv-file').click()" ondragover="handleDragOver(event)"
+                  ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                  <input type="file" id="csv-file" name="csvFile" accept=".csv" class="hidden"
+                    onchange="handleFileSelect(event)">
                   <div id="dropzone-content">
-                    <svg class="w-8 h-8 mx-auto text-surface-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                    <svg class="w-8 h-8 mx-auto text-surface-500 mb-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                     </svg>
-                    <p class="text-xs text-surface-400">Drop CSV file here or <span class="text-brand-400 font-medium">browse</span></p>
+                    <p class="text-xs text-surface-400">Drop CSV file here or <span
+                        class="text-brand-400 font-medium">browse</span></p>
                     <p class="text-[10px] text-surface-500 mt-1">Format: Action, Selector, Value</p>
                   </div>
                   <div id="dropzone-file" class="hidden">
                     <div class="flex items-center justify-center gap-3">
-                      <svg class="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      <svg class="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <div class="text-left">
                         <p id="file-name" class="text-sm font-medium text-gray-200"></p>
                         <p id="file-size" class="text-[11px] text-surface-500"></p>
                       </div>
-                      <button type="button" onclick="event.stopPropagation(); clearFile()" class="ml-2 text-surface-400 hover:text-red-400 transition-colors">
+                      <button type="button" onclick="event.stopPropagation(); clearFile()"
+                        class="ml-2 text-surface-400 hover:text-red-400 transition-colors">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
                     </div>
@@ -267,60 +352,66 @@
                 <div class="flex items-center justify-between text-xs">
                   <span class="text-surface-400">Format: Action, Selector, Value</span>
                   <div class="flex gap-2">
-                    <button type="button" onclick="loadSampleCSV()" class="text-brand-400 hover:text-brand-300 font-medium transition-colors">Load Sample</button>
+                    <button type="button" onclick="loadSampleCSV()"
+                      class="text-brand-400 hover:text-brand-300 font-medium transition-colors">Load Sample</button>
                     <span class="text-surface-600">|</span>
-                    <button type="button" onclick="clearCSVText()" class="text-surface-400 hover:text-red-400 font-medium transition-colors">Clear</button>
+                    <button type="button" onclick="clearCSVText()"
+                      class="text-surface-400 hover:text-red-400 font-medium transition-colors">Clear</button>
                   </div>
                 </div>
-                <textarea
-                  id="csv-text-input"
-                  name="csvText"
-                  rows="6"
+                <textarea id="csv-text-input" name="csvText" rows="6"
                   placeholder="Action,Selector,Value&#10;navigate,,https://example.com&#10;fill,input[name=&quot;q&quot;],Antigravity AI&#10;click,input[type=&quot;submit&quot;],&#10;screenshot,,&#10;wait,,1000"
-                  class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-xs text-gray-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all font-mono resize-y"
-                ></textarea>
+                  class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-xs text-gray-100 placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all font-mono resize-y"></textarea>
               </div>
             </div>
           </div>
 
-          <!-- Exploratory Mode Toggle -->
-          <div class="glass-card rounded-lg p-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center">
-                  <span class="text-lg">🤖</span>
+          <!-- AI Testing Options Card -->
+          <div class="glass-card rounded-lg p-4 space-y-3">
+            <label class="block text-sm font-semibold text-gray-200">AI Testing Options</label>
+            <div class="space-y-2">
+              <!-- Scripted CSV Mode -->
+              <label class="flex items-start gap-3 p-3 bg-surface-800/40 border border-surface-700 rounded-lg cursor-pointer hover:border-surface-600 transition-all select-none group">
+                <input type="radio" name="testingMode" value="scripted" checked class="mt-1 w-4 h-4 text-brand-500 bg-surface-900 border-surface-700 focus:ring-brand-500/50 focus:ring-2 cursor-pointer">
+                <div class="flex-1">
+                  <p class="text-xs font-semibold text-gray-200 group-hover:text-brand-400 transition-colors">Scripted CSV Mode</p>
+                  <p class="text-[10px] text-surface-400 mt-0.5">Run structured CSV steps (Ollama only needed for natural language translations).</p>
                 </div>
-                <div>
-                  <p class="text-sm font-semibold text-gray-200">AI Exploratory Testing</p>
-                  <p class="text-[11px] text-surface-400">Ollama auto-explores the website</p>
+              </label>
+              <!-- Bug Hunting Mode -->
+              <label class="flex items-start gap-3 p-3 bg-surface-800/40 border border-surface-700 rounded-lg cursor-pointer hover:border-surface-600 transition-all select-none group">
+                <input type="radio" name="testingMode" value="bug-hunting" class="mt-1 w-4 h-4 text-brand-500 bg-surface-900 border-surface-700 focus:ring-brand-500/50 focus:ring-2 cursor-pointer">
+                <div class="flex-1">
+                  <p class="text-xs font-semibold text-gray-200 group-hover:text-brand-400 transition-colors">Bug Hunting Mode</p>
+                  <p class="text-[10px] text-surface-400 mt-0.5">Ollama AI automatically crawls and stress-tests to search for console errors or exceptions.</p>
                 </div>
-              </div>
-              <div class="relative">
-                <input type="checkbox" id="exploratory-toggle" name="exploratoryMode" class="toggle-checkbox sr-only">
-                <label for="exploratory-toggle" class="toggle-label flex items-center w-11 h-6 bg-surface-700 rounded-full cursor-pointer transition-colors">
-                  <span class="toggle-dot w-5 h-5 bg-white rounded-full shadow ml-0.5"></span>
-                </label>
-              </div>
+              </label>
+              <!-- Business Auto-Doc Mode -->
+              <label class="flex items-start gap-3 p-3 bg-surface-800/40 border border-surface-700 rounded-lg cursor-pointer hover:border-surface-600 transition-all select-none group">
+                <input type="radio" name="testingMode" value="documentation" class="mt-1 w-4 h-4 text-brand-500 bg-surface-900 border-surface-700 focus:ring-brand-500/50 focus:ring-2 cursor-pointer">
+                <div class="flex-1">
+                  <p class="text-xs font-semibold text-gray-200 group-hover:text-brand-400 transition-colors">Business Auto-Doc Mode</p>
+                  <p class="text-[10px] text-surface-400 mt-0.5">Ollama AI crawls and inventories elements to compile a high-level sitemap, business feature catalog, and walkthrough.</p>
+                </div>
+              </label>
             </div>
           </div>
 
           <!-- Submit Button -->
-          <button
-            type="submit"
-            id="start-btn"
-            class="w-full py-3.5 rounded-lg bg-gradient-to-r from-brand-600 to-purple-600 text-white font-semibold text-sm hover:from-brand-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
-          >
+          <button type="submit" id="start-btn"
+            class="w-full py-3.5 rounded-lg bg-gradient-to-r from-brand-600 to-purple-600 text-white font-semibold text-sm hover:from-brand-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden">
             <span id="btn-text" class="flex items-center justify-center gap-2">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Start Testing
             </span>
             <span id="btn-loading" class="hidden flex items-center justify-center gap-2">
               <svg class="w-5 h-5 animate-spin-slow" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               Running Tests...
             </span>
@@ -331,7 +422,8 @@
         <div class="glass-card rounded-lg p-4">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold text-gray-200">📋 Past Reports</h3>
-            <button onclick="loadReports()" class="text-xs text-brand-400 hover:text-brand-300 transition-colors">Refresh</button>
+            <button onclick="loadReports()"
+              class="text-xs text-brand-400 hover:text-brand-300 transition-colors">Refresh</button>
           </div>
           <div id="reports-list" class="space-y-2 max-h-48 overflow-y-auto">
             <p class="text-xs text-surface-500">Loading...</p>
@@ -352,7 +444,20 @@
             <div id="panel-meta" class="flex items-center gap-3 text-xs text-surface-400">
               <span id="panel-mode" class="hidden px-2 py-0.5 rounded bg-surface-700 text-surface-300"></span>
               <span id="panel-timer" class="hidden tabular-nums font-mono"></span>
+              <button
+                id="cancel-btn"
+                type="button"
+                onclick="cancelTest()"
+                class="hidden px-2.5 py-1 rounded bg-red-600/80 hover:bg-red-600 text-white font-semibold text-[10px] uppercase tracking-wider transition-colors focus:outline-none"
+              >
+                Cancel
+              </button>
             </div>
+          </div>
+
+          <!-- Tab Bar for browsers (hidden by default) -->
+          <div id="browser-tab-bar" class="hidden flex border-b border-surface-700/50 bg-surface-850 px-4 py-2 gap-2 overflow-x-auto">
+            <!-- Tabs will be rendered here dynamically -->
           </div>
 
           <!-- Panel Body -->
@@ -360,8 +465,10 @@
             <!-- Empty State -->
             <div id="panel-empty" class="flex flex-col items-center justify-center h-80 text-center">
               <div class="w-16 h-16 rounded-2xl bg-surface-800 flex items-center justify-center mb-4">
-                <svg class="w-8 h-8 text-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/>
+                <svg class="w-8 h-8 text-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
                 </svg>
               </div>
               <p class="text-sm text-surface-400 font-medium">Ready to test</p>
@@ -396,21 +503,28 @@
     let timerStart = null;
     let eventSource = null;
 
+    let activeBrowsers = [];
+    let currentActiveTabBrowser = null;
+    let browserLogs = {}; // { chrome: [], firefox: [], edge: [] }
+    let browserStatuses = {}; // { chrome: 'running', firefox: 'passed', edge: 'failed' }
+
     // ---- On Load ----
     document.addEventListener('DOMContentLoaded', () => {
       checkOllamaStatus();
       loadModels();
       loadReports();
 
-      // Toggle inputs disable state on exploratory toggle
-      document.getElementById('exploratory-toggle').addEventListener('change', (e) => {
-        const isExploratory = e.target.checked;
-        const testInputSection = document.getElementById('test-steps-input-section');
-        if (isExploratory) {
-          testInputSection.classList.add('opacity-40', 'pointer-events-none');
-        } else {
-          testInputSection.classList.remove('opacity-40', 'pointer-events-none');
-        }
+      // Toggle inputs disable state based on testingMode radio selection
+      document.querySelectorAll('input[name="testingMode"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          const isExploratory = e.target.value !== 'scripted';
+          const testInputSection = document.getElementById('test-steps-input-section');
+          if (isExploratory) {
+            testInputSection.classList.add('opacity-40', 'pointer-events-none');
+          } else {
+            testInputSection.classList.remove('opacity-40', 'pointer-events-none');
+          }
+        });
       });
     });
 
@@ -553,7 +667,7 @@
 
     function switchTab(tab) {
       activeTab = tab;
-      
+
       const tabUpload = document.getElementById('tab-upload');
       const tabWrite = document.getElementById('tab-write');
       const contentUpload = document.getElementById('tab-content-upload');
@@ -600,7 +714,9 @@ screenshot,,`;
         return;
       }
 
-      const isExploratory = document.getElementById('exploratory-toggle').checked;
+      const testingMode = document.querySelector('input[name="testingMode"]:checked').value;
+      const isExploratory = testingMode !== 'scripted';
+      const exploratoryType = isExploratory ? testingMode : '';
       const csvFile = document.getElementById('csv-file').files[0];
       const csvText = document.getElementById('csv-text-input').value;
 
@@ -625,8 +741,34 @@ screenshot,,`;
         formData.delete('csvFile');
       }
 
-      // Set exploratory mode in form data
+      // Set exploratory mode and type in form data
       formData.set('exploratoryMode', isExploratory ? 'true' : 'false');
+      if (isExploratory) {
+        formData.set('exploratoryType', exploratoryType);
+      }
+
+      // Get and validate browser selections
+      const checkedBrowsers = Array.from(document.querySelectorAll('input[name="browsers"]:checked')).map(cb => cb.value);
+      if (checkedBrowsers.length === 0) {
+        showNotification('Please select at least one target browser', 'error');
+        return;
+      }
+      
+      // Clean and set browsers in FormData
+      formData.delete('browsers');
+      checkedBrowsers.forEach(b => formData.append('browsers', b));
+
+      activeBrowsers = checkedBrowsers;
+      currentActiveTabBrowser = activeBrowsers[0];
+      browserLogs = {};
+      browserStatuses = {};
+      activeBrowsers.forEach(b => {
+        browserLogs[b] = [];
+        browserStatuses[b] = 'running';
+      });
+
+      // Render tab bar
+      renderBrowserTabs();
 
       // UI: Show loading state
       setButtonLoading(true);
@@ -647,7 +789,7 @@ screenshot,,`;
 
         currentRunId = data.runId;
         startTimer();
-        updatePanelMode(data.mode);
+        updatePanelMode(data.mode, exploratoryType);
 
         // Connect to SSE for live updates
         connectSSE(data.runId);
@@ -656,6 +798,27 @@ screenshot,,`;
         showNotification(error.message, 'error');
         setButtonLoading(false);
         addLogEntry('error', `❌ ${error.message}`);
+      }
+    }
+
+    async function cancelTest() {
+      if (!currentRunId) return;
+      try {
+        const res = await fetch('/cancel-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId: currentRunId })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to cancel test');
+        }
+        showNotification('Test cancelled successfully', 'success');
+        setButtonLoading(false);
+        resetExecutionPanel();
+      } catch (error) {
+        showNotification(error.message, 'error');
+        setButtonLoading(false);
       }
     }
 
@@ -685,37 +848,105 @@ screenshot,,`;
       };
     }
 
+    function renderBrowserTabs() {
+      const tabContainer = document.getElementById('browser-tab-bar');
+      if (activeBrowsers.length <= 1) {
+        tabContainer.classList.add('hidden');
+        return;
+      }
+      tabContainer.classList.remove('hidden');
+      
+      const statusIcons = {
+        running: '<span class="animate-spin inline-block w-3 h-3 border-2 border-brand-400 border-t-transparent rounded-full mr-1.5"></span>',
+        passed: '<span class="text-green-400 mr-1.5">✅</span>',
+        failed: '<span class="text-red-400 mr-1.5">❌</span>',
+      };
+
+      const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+      tabContainer.innerHTML = activeBrowsers.map(b => {
+        const isActive = b === currentActiveTabBrowser;
+        const status = browserStatuses[b] || 'running';
+        const activeClasses = isActive 
+          ? 'bg-brand-600/30 border-brand-500 text-brand-400 font-semibold shadow-inner' 
+          : 'bg-surface-800 border-surface-700/50 text-surface-400 hover:text-gray-200';
+        return `
+          <button type="button" onclick="selectBrowserTab('${b}')" class="flex items-center px-3 py-1.5 rounded-lg border text-xs transition-all ${activeClasses}">
+            ${statusIcons[status] || ''}
+            <span>${capitalize(b)}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectBrowserTab(browserName) {
+      currentActiveTabBrowser = browserName;
+      renderBrowserTabs();
+      
+      // Clear log container
+      const container = document.getElementById('steps-container');
+      container.innerHTML = '';
+      
+      // Re-populate from browserLogs
+      const logs = browserLogs[browserName] || [];
+      logs.forEach(log => {
+        appendLogLineToUI(log.type, log.message);
+      });
+    }
+
     function handleSSEEvent(data) {
+      // Update individual browser status
+      if (data.type === 'browser-status') {
+        browserStatuses[data.browser] = data.status;
+        renderBrowserTabs();
+        return;
+      }
+
+      // Segment incoming log events by browser
+      if (data.browser) {
+        if (!browserLogs[data.browser]) browserLogs[data.browser] = [];
+        browserLogs[data.browser].push(data);
+      } else {
+        // Global status event: distribute to all active browsers
+        activeBrowsers.forEach(b => {
+          if (!browserLogs[b]) browserLogs[b] = [];
+          browserLogs[b].push(data);
+        });
+      }
+
+      // Check if this log event is relevant to the currently selected browser tab
+      const isCurrentBrowser = !data.browser || data.browser === currentActiveTabBrowser;
+
       switch (data.type) {
         case 'status':
-          addLogEntry('status', data.message);
+          if (isCurrentBrowser) appendLogLineToUI('status', data.message);
           break;
 
         case 'info':
-          addLogEntry('info', data.message);
+          if (isCurrentBrowser) appendLogLineToUI('info', data.message);
           break;
 
         case 'warning':
-          addLogEntry('warning', data.message);
+          if (isCurrentBrowser) appendLogLineToUI('warning', data.message);
           break;
 
         case 'step':
-          addLogEntry('step', data.message);
+          if (isCurrentBrowser) appendLogLineToUI('step', data.message);
           break;
 
         case 'step-result':
-          addLogEntry(data.status === 'passed' ? 'success' : 'error', data.message);
+          if (isCurrentBrowser) appendLogLineToUI(data.status === 'passed' ? 'success' : 'error', data.message);
           break;
 
         case 'error':
-          addLogEntry('error', data.message);
+          if (isCurrentBrowser) appendLogLineToUI('error', data.message);
           setButtonLoading(false);
           stopTimer();
           updatePanelStatus('error');
           break;
 
         case 'complete':
-          addLogEntry('success', `🎉 ${data.message}`);
+          if (isCurrentBrowser) appendLogLineToUI('success', `🎉 ${data.message}`);
           setButtonLoading(false);
           stopTimer();
           updatePanelStatus('complete');
@@ -737,6 +968,8 @@ screenshot,,`;
       document.getElementById('steps-container').innerHTML = '';
       document.getElementById('result-summary').classList.add('hidden');
       document.getElementById('result-summary').innerHTML = '';
+      document.getElementById('browser-tab-bar').classList.add('hidden');
+      document.getElementById('browser-tab-bar').innerHTML = '';
     }
 
     function showExecutionPanel() {
@@ -745,7 +978,7 @@ screenshot,,`;
       updatePanelStatus('running');
     }
 
-    function addLogEntry(type, message) {
+    function appendLogLineToUI(type, message) {
       const container = document.getElementById('steps-container');
 
       const iconMap = {
@@ -779,6 +1012,10 @@ screenshot,,`;
       panel.scrollTop = panel.scrollHeight;
     }
 
+    function addLogEntry(type, message) {
+      appendLogLineToUI(type, message);
+    }
+
     function updatePanelStatus(status) {
       const dot = document.getElementById('panel-status-dot');
       switch (status) {
@@ -796,10 +1033,14 @@ screenshot,,`;
       }
     }
 
-    function updatePanelMode(mode) {
+    function updatePanelMode(mode, type) {
       const badge = document.getElementById('panel-mode');
       badge.classList.remove('hidden');
-      badge.textContent = mode === 'exploratory' ? '🤖 AI Explorer' : '📄 Scripted';
+      if (mode === 'exploratory') {
+        badge.textContent = type === 'documentation' ? '🤖 AI Business Auto-Doc' : '🤖 AI Bug Hunter';
+      } else {
+        badge.textContent = '📄 Scripted';
+      }
     }
 
     function showResultSummary(data) {
@@ -836,9 +1077,16 @@ screenshot,,`;
             <div class="h-full rounded-full ${isAllPassed ? 'bg-green-400' : 'bg-red-400'} transition-all duration-700" style="width: ${passRate}%"></div>
           </div>
           ${data.reportUrl ? `
-            <a href="${data.reportUrl}" target="_blank" class="block w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-center text-sm font-semibold transition-colors">
-              📊 View Full Report
-            </a>
+            <div class="flex flex-col sm:flex-row gap-2 mt-3">
+              <a href="${data.reportUrl}" target="_blank" class="flex-1 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-center text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-md">
+                📊 View Full Report
+              </a>
+              ${data.summary && data.summary.exploratoryType === 'documentation' ? `
+                <a href="/reports/${currentRunId}/documentation-spec.docx" download class="flex-1 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 border border-purple-500/25 text-white text-center text-sm font-semibold transition-all hover:scale-[1.01] flex items-center justify-center gap-1.5 shadow-md">
+                  📥 Download Word Business Spec
+                </a>
+              ` : ''}
+            </div>
           ` : ''}
         </div>
       `;
@@ -874,14 +1122,17 @@ screenshot,,`;
       const btn = document.getElementById('start-btn');
       const btnText = document.getElementById('btn-text');
       const btnLoading = document.getElementById('btn-loading');
+      const cancelBtn = document.getElementById('cancel-btn');
 
       btn.disabled = loading;
       if (loading) {
         btnText.classList.add('hidden');
         btnLoading.classList.remove('hidden');
+        if (cancelBtn) cancelBtn.classList.remove('hidden');
       } else {
         btnText.classList.remove('hidden');
         btnLoading.classList.add('hidden');
+        if (cancelBtn) cancelBtn.classList.add('hidden');
       }
     }
 
@@ -902,4 +1153,5 @@ screenshot,,`;
     }
   </script>
 </body>
+
 </html>

@@ -8,13 +8,20 @@
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
-  "keywords": ["qa", "automation", "playwright", "ollama", "testing"],
+  "keywords": [
+    "qa",
+    "automation",
+    "playwright",
+    "ollama",
+    "testing"
+  ],
   "author": "Ehab Mohamed",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.21.0",
-    "playwright": "^1.60.0",
     "csv-parse": "^5.6.0",
-    "multer": "^1.4.5-lts.1"
+    "docx": "^9.7.1",
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1",
+    "playwright": "^1.60.0"
   }
 }

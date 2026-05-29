@@ -1,0 +1,235 @@
+{
+  "/test-self-healing.html:#login-submit": {
+    "original": "#login-submit",
+    "alternatives": [
+      "xpath=//*[@id=\"healed-login-submit\"]",
+      "Coordinates(406, 335)"
+    ],
+    "lastHealed": "2026-05-28T16:18:52.115Z",
+    "healCount": 2,
+    "successRuns": 14,
+    "healed": "Coordinates(406, 335)"
+  },
+  "/test-self-healing.html:.user-email": {
+    "original": ".user-email",
+    "alternatives": [
+      "xpath=//*[@id=\"user-email-address\"]"
+    ],
+    "healed": "xpath=//*[@id=\"user-email-address\"]",
+    "lastHealed": "2026-05-28T15:51:15.834Z",
+    "healCount": 1,
+    "successRuns": 15
+  },
+  "/test-self-healing.html:#coord-label": {
+    "original": "#coord-label",
+    "alternatives": [
+      "Coordinates(394, 448)"
+    ],
+    "healed": "Coordinates(394, 448)",
+    "lastHealed": "2026-05-28T15:51:19.323Z",
+    "healCount": 1,
+    "successRuns": 15
+  },
+  "/:.login-trigger": {
+    "original": ".login-trigger",
+    "alternatives": [
+      "xpath=//*[@id=\"menu-item-2330\"]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"menu-item-2330\"]/a[1]",
+    "lastHealed": "2026-05-28T16:03:17.084Z",
+    "healCount": 1,
+    "successRuns": 4
+  },
+  "/:input[name=\"username\"]": {
+    "original": "input[name=\"username\"]",
+    "alternatives": [
+      "xpath=body/div[8]/div[2]/div[1]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/form[1]/div[1]/div[1]/div[1]/input[1]"
+    ],
+    "lastHealed": "2026-05-28T16:13:13.005Z",
+    "healCount": 2,
+    "healed": "xpath=body/div[8]/div[2]/div[1]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/form[1]/div[1]/div[1]/div[1]/input[1]"
+  },
+  "/:input[name=\"password\"]": {
+    "original": "input[name=\"password\"]",
+    "alternatives": [
+      "xpath=body/div[8]/div[2]/div[1]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/form[1]/div[1]/div[2]/div[1]/input[1]"
+    ],
+    "lastHealed": "2026-05-28T18:16:30.284Z",
+    "healCount": 5,
+    "healed": "xpath=body/div[8]/div[2]/div[1]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/form[1]/div[1]/div[2]/div[1]/input[1]"
+  },
+  "/:.nav-shop": {
+    "original": ".nav-shop",
+    "alternatives": [
+      "xpath=//*[@id=\"menu-item-1310\"]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"menu-item-1310\"]/a[1]",
+    "lastHealed": "2026-05-28T16:14:36.555Z",
+    "healCount": 1
+  },
+  "/shop/:.add-to-cart-btn": {
+    "original": ".add-to-cart-btn",
+    "alternatives": [
+      "xpath=//*[@id=\"main\"]/ul[1]/li[1]/a[2]"
+    ],
+    "healed": "xpath=//*[@id=\"main\"]/ul[1]/li[1]/a[2]",
+    "lastHealed": "2026-05-28T16:15:13.157Z",
+    "healCount": 1,
+    "successRuns": 3
+  },
+  "/:button.btn[type='submit']": {
+    "original": "button.btn[type='submit']",
+    "alternatives": [
+      "xpath=//*[@id=\"search\"]/div[1]/div[1]/div[1]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"search\"]/div[1]/div[1]/div[1]/button[1]",
+    "lastHealed": "2026-05-28T16:25:09.799Z",
+    "healCount": 1
+  },
+  "/:[type=\"text\"][aria-label=\"Search\"]": {
+    "original": "[type=\"text\"][aria-label=\"Search\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"search\"]/div[2]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"search\"]/div[2]/button[1]",
+    "lastHealed": "2026-05-28T16:31:24.888Z",
+    "healCount": 1
+  },
+  "/test-self-healing.html:#covered-input": {
+    "original": "#covered-input",
+    "alternatives": [
+      "xpath=//*[@id=\"covered-btn\"]"
+    ],
+    "lastHealed": "2026-05-28T16:39:19.196Z",
+    "healCount": 1,
+    "successRuns": 1
+  },
+  "/index.php:[aria-label='All Categories']": {
+    "original": "[aria-label='All Categories']",
+    "alternatives": [
+      "xpath=//*[@id=\"search\"]/div[1]/div[1]/div[1]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"search\"]/div[1]/div[1]/div[1]/button[1]",
+    "lastHealed": "2026-05-28T17:02:37.777Z",
+    "healCount": 1
+  },
+  "/index.php:a.icon-left:contains('Mobiles')": {
+    "original": "a.icon-left:contains('Mobiles')",
+    "alternatives": [
+      "Coordinates(-160, 81)"
+    ],
+    "healed": "Coordinates(-160, 81)",
+    "lastHealed": "2026-05-28T17:03:00.557Z",
+    "healCount": 1
+  },
+  "/index.php:button.btn[type='submit']": {
+    "original": "button.btn[type='submit']",
+    "alternatives": [
+      "xpath=//*[@id=\"button-search\"]"
+    ],
+    "healed": "xpath=//*[@id=\"button-search\"]",
+    "lastHealed": "2026-05-28T17:03:19.273Z",
+    "healCount": 1,
+    "successRuns": 1
+  },
+  "/index.php:a[name='search']": {
+    "original": "a[name='search']",
+    "alternatives": [
+      "xpath=//*[@id=\"search\"]/div[2]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"search\"]/div[2]/button[1]",
+    "lastHealed": "2026-05-28T17:08:22.422Z",
+    "healCount": 1
+  },
+  "/index.php:#accessories-section": {
+    "original": "#accessories-section",
+    "alternatives": [
+      "xpath=//*[@id=\"widget-navbar-217841\"]/ul[1]/li[10]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"widget-navbar-217841\"]/ul[1]/li[10]/a[1]",
+    "lastHealed": "2026-05-28T18:06:10.031Z",
+    "healCount": 1
+  },
+  "/index.php:[name='edit-cart']": {
+    "original": "[name='edit-cart']",
+    "alternatives": [
+      "Coordinates(1363, 684)"
+    ],
+    "healed": "Coordinates(1363, 684)",
+    "lastHealed": "2026-05-28T18:06:56.597Z",
+    "healCount": 1
+  },
+  "/:a.icon-left[name='Mobiles']": {
+    "original": "a.icon-left[name='Mobiles']",
+    "alternatives": [
+      "Coordinates(-160, 81)"
+    ],
+    "healed": "Coordinates(-160, 81)",
+    "lastHealed": "2026-05-28T18:08:05.169Z",
+    "healCount": 1
+  },
+  "/:#mobile-category": {
+    "original": "#mobile-category",
+    "alternatives": [
+      "xpath=//*[@id=\"entry_217832\"]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"entry_217832\"]/a[1]",
+    "lastHealed": "2026-05-28T18:08:17.191Z",
+    "healCount": 1
+  },
+  "/:button.type-text[name='Search']": {
+    "original": "button.type-text[name='Search']",
+    "alternatives": [
+      "xpath=//*[@id=\"search\"]/div[2]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"search\"]/div[2]/button[1]",
+    "lastHealed": "2026-05-28T18:08:31.303Z",
+    "healCount": 1
+  },
+  "/:input[name=\"email\"]": {
+    "original": "input[name=\"email\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"form_email_1\"]"
+    ],
+    "healed": "xpath=//*[@id=\"form_email_1\"]",
+    "lastHealed": "2026-05-28T18:15:34.923Z",
+    "healCount": 3
+  },
+  "/:.btn-primary[type=\"submit\"]": {
+    "original": ".btn-primary[type=\"submit\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"page\"]/div[1]/content[1]/div[1]/section[7]/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/form[1]/div[5]/label[1]"
+    ],
+    "healed": "xpath=//*[@id=\"page\"]/div[1]/content[1]/div[1]/section[7]/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/form[1]/div[5]/label[1]",
+    "lastHealed": "2026-05-28T18:17:10.385Z",
+    "healCount": 3
+  },
+  "/index.php:.product-card": {
+    "original": ".product-card",
+    "alternatives": [
+      "xpath=//*[@id=\"search\"]/div[1]/div[1]/div[2]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"search\"]/div[1]/div[1]/div[2]/input[1]",
+    "lastHealed": "2026-05-28T21:13:06.361Z",
+    "healCount": 1
+  },
+  "/test-self-healing.html:#non-existent-button-id": {
+    "original": "#non-existent-button-id",
+    "alternatives": [
+      "Coordinates(414, 205)"
+    ],
+    "healed": "Coordinates(414, 205)",
+    "lastHealed": "2026-05-29T00:10:01.602Z",
+    "healCount": 1
+  },
+  "/login:.login-submit": {
+    "original": ".login-submit",
+    "alternatives": [
+      "xpath=//*[@id=\"login\"]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"login\"]/button[1]",
+    "lastHealed": "2026-05-29T00:27:31.954Z",
+    "healCount": 1,
+    "successRuns": 3
+  }
+}

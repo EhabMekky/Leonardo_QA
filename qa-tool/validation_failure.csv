@@ -1,0 +1,8 @@
+Action,Selector,Value
+navigate,,https://the-internet.herokuapp.com/login
+fill,#username,wronguser@test.com
+fill,#password,wrongpassword123
+click,button[type="submit"],
+wait,,2000
+click,a.button.secondary[href="/logout"],
+screenshot,,

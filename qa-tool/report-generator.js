@@ -44,17 +44,38 @@ function buildReportHTML(runId, results) {
     url = '',
     mode = 'scripted',
     model = 'N/A',
+    deviceProfile = 'desktop',
     startTime,
     endTime,
-    steps = [],
-    consoleErrors = [],
     cookies = []
   } = results;
 
-  const totalSteps = steps.length;
-  const passed = steps.filter(s => s.status === 'passed').length;
-  const failed = steps.filter(s => s.status === 'failed').length;
-  const skipped = steps.filter(s => s.status === 'skipped').length;
+  // Fallback support for single-browser or legacy structure
+  let browsersData = results.browsers;
+  if (!browsersData) {
+    browsersData = {
+      chrome: {
+        steps: results.steps || [],
+        consoleErrors: results.consoleErrors || []
+      }
+    };
+  }
+
+  // Aggregate overall metrics across all active browsers
+  let totalSteps = 0;
+  let passed = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const b of Object.keys(browsersData)) {
+    const bData = browsersData[b];
+    const steps = bData.steps || [];
+    totalSteps += steps.length;
+    passed += steps.filter(s => s.status === 'passed').length;
+    failed += steps.filter(s => s.status === 'failed').length;
+    skipped += steps.filter(s => s.status === 'skipped').length;
+  }
+
   const passRate = totalSteps > 0 ? ((passed / totalSteps) * 100).toFixed(1) : '0.0';
   const duration = startTime && endTime
     ? ((new Date(endTime) - new Date(startTime)) / 1000).toFixed(2)
@@ -65,17 +86,88 @@ function buildReportHTML(runId, results) {
     timeStyle: 'medium'
   });
 
-  // Build step rows
-  const stepRows = steps.map((step, idx) => buildStepRow(step, idx)).join('\n');
+  const browserKeys = Object.keys(browsersData);
+  const hasOverallConsoleErrors = Object.values(browsersData).some(bData => (bData.consoleErrors || []).length > 0);
 
-  // Build console errors section
-  const consoleErrorsHTML = consoleErrors.length > 0
-    ? `<div class="console-errors">
-        <h3>🔴 Console Errors Captured (${consoleErrors.length})</h3>
-        <div class="error-list">
-          ${consoleErrors.map(e => `<div class="error-item"><span class="error-time">${e.timestamp || ''}</span> <span class="error-msg">${escapeHtml(e.message || e)}</span></div>`).join('\n')}
-        </div>
-      </div>`
+  // Build browser-specific step lists & console error lists
+  const reportTabsHTML = `
+    <div class="report-tabs">
+      ${browserKeys.map((b, idx) => {
+        const bData = browsersData[b];
+        const failedCount = (bData.steps || []).filter(s => s.status === 'failed').length;
+        const badgeClass = failedCount > 0 ? 'failed' : 'passed';
+        const badgeText = failedCount > 0 ? '❌ Failed' : '✅ Passed';
+        return `
+          <button class="report-tab-btn ${idx === 0 ? 'active' : ''}" onclick="showBrowserReport('${b}')" data-browser="${b}">
+            <span>${b.toUpperCase()}</span>
+            <span class="tab-status-badge ${badgeClass}">${badgeText}</span>
+          </button>
+        `;
+      }).join('\n')}
+    </div>
+  `;
+
+  // Build steps contents
+  const stepsContentsHTML = `
+    <div class="browser-report-contents">
+      ${browserKeys.map((b, idx) => {
+        const bData = browsersData[b];
+        const steps = bData.steps || [];
+        const stepRows = steps.map((step, sIdx) => buildStepRow(step, sIdx, b)).join('\n');
+        
+        // Check if video file exists on disk
+        const videoUrl = `/reports/${runId}/video-${b}.webm`;
+        const videoPath = path.join(__dirname, 'reports', runId, `video-${b}.webm`);
+        const hasVideo = fs.existsSync(videoPath);
+        
+        const videoPlayerHTML = hasVideo
+          ? `<div class="video-player-container">
+              <h3>🎥 Browser Execution Recording (${b.toUpperCase()})</h3>
+              <video controls width="100%" preload="metadata" style="max-width: 800px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <source src="${videoUrl}" type="video/webm">
+                Your browser does not support the video tag.
+              </video>
+             </div>`
+          : '';
+
+        return `
+          <div id="browser-steps-${b}" class="browser-steps-content" style="display: ${idx === 0 ? 'block' : 'none'};">
+            ${videoPlayerHTML}
+            <div class="steps-container">
+              ${stepRows || '<div class="no-steps">No test steps recorded</div>'}
+            </div>
+          </div>
+        `;
+      }).join('\n')}
+    </div>
+  `;
+
+  // Build console errors content
+  const consoleErrorsContentsHTML = hasOverallConsoleErrors
+    ? `
+    <section id="console-errors" class="section">
+      <h2>🔴 Console Errors</h2>
+      <div class="browser-errors-contents">
+        ${browserKeys.map((b, idx) => {
+          const bData = browsersData[b];
+          const consoleErrors = bData.consoleErrors || [];
+          const consoleErrorsHTML = consoleErrors.length > 0
+            ? `<div class="console-errors">
+                <h3>🔴 Console Errors Captured on ${b.toUpperCase()} (${consoleErrors.length})</h3>
+                <div class="error-list">
+                  ${consoleErrors.map(e => `<div class="error-item"><span class="error-time">${e.timestamp || ''}</span> <span class="error-msg">${escapeHtml(e.message || e)}</span></div>`).join('\n')}
+                </div>
+              </div>`
+            : '<div class="no-steps">No console errors recorded</div>';
+          return `
+            <div id="browser-errors-${b}" class="browser-errors-content" style="display: ${idx === 0 ? 'block' : 'none'};">
+              ${consoleErrorsHTML}
+            </div>
+          `;
+        }).join('\n')}
+      </div>
+    </section>
+    `
     : '';
 
   return `<!DOCTYPE html>
@@ -84,6 +176,7 @@ function buildReportHTML(runId, results) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test Report — ${escapeHtml(testName)}</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -105,7 +198,7 @@ function buildReportHTML(runId, results) {
     <nav class="sidebar-nav">
       <a href="#overview" class="nav-item active">📊 Overview</a>
       <a href="#steps" class="nav-item">📋 Test Steps</a>
-      ${consoleErrors.length > 0 ? '<a href="#console-errors" class="nav-item">🔴 Console Errors</a>' : ''}
+      ${hasOverallConsoleErrors ? '<a href="#console-errors" class="nav-item">🔴 Console Errors</a>' : ''}
       <a href="#environment" class="nav-item">⚙️ Environment</a>
     </nav>
     <div class="sidebar-footer">
@@ -121,7 +214,16 @@ function buildReportHTML(runId, results) {
         <h1>${escapeHtml(testName)}</h1>
         <p class="timestamp">${timestamp}</p>
       </div>
-      <div class="header-right">
+      <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
+        ${results.exploratoryType === 'documentation'
+          ? `<a href="/reports/${runId}/documentation-spec.docx" download class="overall-badge passed" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #1565c0; border: 1px solid #cbd5e1; background: #e3f2fd;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 2px;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+              </svg>
+              Download Business Spec
+             </a>`
+          : ''
+        }
         <span class="overall-badge ${overallStatus}">${overallStatus === 'passed' ? '✓ PASSED' : '✗ FAILED'}</span>
       </div>
     </header>
@@ -167,21 +269,26 @@ function buildReportHTML(runId, results) {
     <!-- Test Steps Section -->
     <section id="steps" class="section">
       <h2>📋 Test Steps</h2>
-      <div class="steps-container">
-        ${stepRows || '<div class="no-steps">No test steps recorded</div>'}
-      </div>
+      ${reportTabsHTML}
+      ${stepsContentsHTML}
     </section>
 
     <!-- Console Errors Section -->
-    ${consoleErrors.length > 0 ? `<section id="console-errors" class="section">${consoleErrorsHTML}</section>` : ''}
+    ${consoleErrorsContentsHTML}
 
     <!-- Environment Section -->
     <section id="environment" class="section">
       <h2>⚙️ Environment</h2>
       <table class="env-table">
         <tr><td>URL</td><td><a href="${escapeHtml(url)}" target="_blank">${escapeHtml(url)}</a></td></tr>
-        <tr><td>Mode</td><td><span class="mode-badge ${mode}">${mode === 'exploratory' ? '🤖 AI Exploratory' : '📄 Scripted (CSV)'}</span></td></tr>
+        <tr><td>Mode</td><td><span class="mode-badge ${mode}">${results.exploratoryType === 'documentation' ? '🤖 AI Business Auto-Doc' : (mode === 'exploratory' ? '🤖 AI Bug Hunter' : '📄 Scripted (CSV)')}</span></td></tr>
+        ${results.exploratoryType === 'documentation'
+          ? `<tr><td>Functional Spec</td><td><a href="/reports/${runId}/documentation-spec.docx" download style="font-weight: 600; color: #4f46e5; text-decoration: none;">📥 Download Word Business Spec (.docx)</a></td></tr>`
+          : ''
+        }
         <tr><td>Ollama Model</td><td>${escapeHtml(model)}</td></tr>
+        <tr><td>Device Emulation</td><td>${deviceProfile && deviceProfile !== 'desktop' ? `<code>${escapeHtml(deviceProfile)}</code>` : 'Desktop (1280x720)'}</td></tr>
+        <tr><td>Active Browsers</td><td>${browserKeys.map(b => `<span class="mode-badge scripted" style="margin-right: 5px; text-transform: uppercase;">${b}</span>`).join('')}</td></tr>
         <tr><td>Duration</td><td>${duration}s</td></tr>
         <tr><td>Cookies</td><td>${cookies.length} injected</td></tr>
         <tr><td>Run ID</td><td><code>${escapeHtml(runId)}</code></td></tr>
@@ -199,7 +306,7 @@ function buildReportHTML(runId, results) {
 /**
  * Build a single step row with collapsible details
  */
-function buildStepRow(step, index) {
+function buildStepRow(step, index, browser) {
   const {
     name = `Step ${index + 1}`,
     action = '',
@@ -214,6 +321,7 @@ function buildStepRow(step, index) {
 
   const statusIcon = status === 'passed' ? '✓' : status === 'failed' ? '✗' : '⊘';
   const statusClass = status === 'passed' ? 'passed' : status === 'failed' ? 'failed' : 'skipped';
+  const toggleId = `${browser}-${index}`;
 
   // Build screenshot HTML if available
   const screenshotHTML = screenshot
@@ -232,9 +340,61 @@ function buildStepRow(step, index) {
     ? `<div class="step-reason"><strong>AI Reason:</strong> ${escapeHtml(reason)}</div>`
     : '';
 
+  // Build diagnostics HTML if present
+  let diagnosticsHTML = '';
+  if (step.diagnostics) {
+    const diag = step.diagnostics;
+    const ai = diag.aiAnalysis || {};
+    const remediationItems = Array.isArray(ai.remediation)
+      ? ai.remediation.map(item => `<li>${escapeHtml(item)}</li>`).join('')
+      : '';
+
+    diagnosticsHTML = `
+      <div class="diagnostics-card" onclick="event.stopPropagation()">
+        <div class="diagnostics-header">
+          <span class="diagnostics-icon">🤖</span>
+          <strong>AI Debugger Insights</strong>
+        </div>
+        <div class="diagnostics-body">
+          <div class="diag-section">
+            <span class="diag-subtitle">Explanation:</span>
+            <p class="diag-text">${escapeHtml(ai.explanation || '')}</p>
+          </div>
+          <div class="diag-section">
+            <span class="diag-subtitle">Root Cause:</span>
+            <p class="diag-text">${escapeHtml(ai.rootCause || '')}</p>
+          </div>
+          ${remediationItems ? `
+          <div class="diag-section">
+            <span class="diag-subtitle">Remediation Steps:</span>
+            <ul class="remediation-list">
+              ${remediationItems}
+            </ul>
+          </div>` : ''}
+        </div>
+        
+        ${diag.elementHtml ? `
+        <div class="dom-context-section">
+          <button class="dom-toggle-btn" type="button" onclick="event.stopPropagation(); toggleDomContext('${toggleId}')">
+            <span>📁 DOM Snippet Context</span>
+            <span class="dom-chevron" id="dom-chevron-${toggleId}">▸</span>
+          </button>
+          <div class="dom-context-body" id="dom-context-${toggleId}" style="display: none;">
+            <div class="code-header">Failed Element HTML</div>
+            <pre><code>${escapeHtml(diag.elementHtml)}</code></pre>
+            ${diag.parentHtml ? `
+            <div class="code-header">Parent Container HTML</div>
+            <pre><code>${escapeHtml(diag.parentHtml)}</code></pre>
+            ` : ''}
+          </div>
+        </div>` : ''}
+      </div>
+    `;
+  }
+
   return `
-    <div class="step-item ${statusClass}" data-step-index="${index}">
-      <div class="step-header" onclick="toggleStep(${index})">
+    <div class="step-item ${statusClass}" data-step-index="${toggleId}">
+      <div class="step-header" onclick="toggleStep('${toggleId}')">
         <div class="step-left">
           <span class="step-status-icon ${statusClass}">${statusIcon}</span>
           <span class="step-number">#${index + 1}</span>
@@ -242,10 +402,10 @@ function buildStepRow(step, index) {
         </div>
         <div class="step-right">
           <span class="step-duration">${(duration / 1000).toFixed(2)}s</span>
-          <span class="step-chevron" id="chevron-${index}">▸</span>
+          <span class="step-chevron" id="chevron-${toggleId}">▸</span>
         </div>
       </div>
-      <div class="step-details" id="step-details-${index}" style="display:none;">
+      <div class="step-details" id="step-details-${toggleId}" style="display:none;">
         <div class="step-meta">
           <div class="meta-row"><span class="meta-label">Action:</span> <code>${escapeHtml(action)}</code></div>
           ${selector ? `<div class="meta-row"><span class="meta-label">Selector:</span> <code>${escapeHtml(selector)}</code></div>` : ''}
@@ -253,6 +413,7 @@ function buildStepRow(step, index) {
         </div>
         ${reasonHTML}
         ${errorHTML}
+        ${diagnosticsHTML}
         ${screenshotHTML}
       </div>
     </div>`;
@@ -699,6 +860,183 @@ function getReportCSS() {
       .content { margin-left: 0; padding: 20px; }
       .summary-cards { grid-template-columns: repeat(2, 1fr); }
     }
+
+    /* Report tabs styling */
+    .report-tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 12px;
+    }
+    .report-tab-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #475569;
+    }
+    .report-tab-btn:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+    .report-tab-btn.active {
+      border-color: #6366f1;
+      background: #eff6ff;
+      color: #4f46e5;
+    }
+    .tab-status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .tab-status-badge.passed {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .tab-status-badge.failed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Video Player */
+    .video-player-container {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .video-player-container h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #0f172a;
+    }
+
+    /* Diagnostics Card */
+    .diagnostics-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #f43f5e;
+      border-radius: 8px;
+      margin-top: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .diagnostics-header {
+      background: #fff5f5;
+      padding: 10px 16px;
+      border-bottom: 1px solid #fee2e2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #991b1b;
+      font-size: 14px;
+    }
+    .diagnostics-icon {
+      font-size: 16px;
+    }
+    .diagnostics-body {
+      padding: 16px;
+    }
+    .diag-section {
+      margin-bottom: 12px;
+    }
+    .diag-section:last-child {
+      margin-bottom: 0;
+    }
+    .diag-subtitle {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .diag-text {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #334155;
+    }
+    .remediation-list {
+      padding-left: 20px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #334155;
+    }
+    .remediation-list li {
+      margin-bottom: 4px;
+    }
+    .remediation-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    /* DOM Context Section */
+    .dom-context-section {
+      border-top: 1px solid #e2e8f0;
+    }
+    .dom-toggle-btn {
+      width: 100%;
+      background: #f8fafc;
+      border: none;
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.15s;
+    }
+    .dom-toggle-btn:hover {
+      background: #f1f5f9;
+    }
+    .dom-chevron {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .dom-context-body {
+      padding: 16px;
+      background: #1e293b;
+      color: #e2e8f0;
+      overflow-x: auto;
+    }
+    .code-header {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      margin-top: 10px;
+    }
+    .code-header:first-child {
+      margin-top: 0;
+    }
+    .dom-context-body pre {
+      margin: 0;
+      padding: 0;
+    }
+    .dom-context-body code {
+      background: none;
+      padding: 0;
+      color: #e2e8f0;
+      font-size: 12px;
+    }
   `;
 }
 
@@ -707,9 +1045,21 @@ function getReportCSS() {
  */
 function getReportJS() {
   return `
-    function toggleStep(index) {
-      const details = document.getElementById('step-details-' + index);
-      const chevron = document.getElementById('chevron-' + index);
+    function toggleDomContext(id) {
+      const details = document.getElementById('dom-context-' + id);
+      const chevron = document.getElementById('dom-chevron-' + id);
+      if (details.style.display === 'none') {
+        details.style.display = 'block';
+        chevron.textContent = '▾';
+      } else {
+        details.style.display = 'none';
+        chevron.textContent = '▸';
+      }
+    }
+
+    function toggleStep(id) {
+      const details = document.getElementById('step-details-' + id);
+      const chevron = document.getElementById('chevron-' + id);
       if (details.style.display === 'none') {
         details.style.display = 'block';
         chevron.textContent = '▾';
@@ -718,6 +1068,32 @@ function getReportJS() {
         details.style.display = 'none';
         chevron.textContent = '▸';
       }
+    }
+
+    function showBrowserReport(browser) {
+      // Hide all step content areas
+      document.querySelectorAll('.browser-steps-content').forEach(el => {
+        el.style.display = 'none';
+      });
+      // Hide all error content areas
+      document.querySelectorAll('.browser-errors-content').forEach(el => {
+        el.style.display = 'none';
+      });
+
+      // Show selected content area
+      const stepsTarget = document.getElementById('browser-steps-' + browser);
+      if (stepsTarget) stepsTarget.style.display = 'block';
+      const errorsTarget = document.getElementById('browser-errors-' + browser);
+      if (errorsTarget) errorsTarget.style.display = 'block';
+
+      // Update active state on tab buttons
+      document.querySelectorAll('.report-tab-btn').forEach(btn => {
+        if (btn.dataset.browser === browser) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
     }
 
     // Expand all failed steps by default

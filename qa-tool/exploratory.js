@@ -11,10 +11,11 @@
  * 7. Stops after max iterations or when LLM signals completion
  */
 
-import { chromium } from 'playwright';
+import { chromium, firefox, devices } from 'playwright';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { executeInteraction, dismissCommonPopups } from './interaction-helper.js';
+import { executeInteraction, dismissCommonPopups, runFailureDiagnostics } from './interaction-helper.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,15 +24,15 @@ const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
 const DEFAULT_MODEL = 'qwen2.5-coder:7b';
 const MAX_EXPLORATION_ROUNDS = 8;
 const MAX_ACTIONS_PER_ROUND = 5;
-const ACTION_TIMEOUT_MS = 30000;
+const ACTION_TIMEOUT_MS = 5000;
 const OLLAMA_TIMEOUT_MS = 120000;
-const MAX_RETRIES = 3;
-const RETRY_WAIT_MS = 5000;
+const MAX_RETRIES = 1;
+const RETRY_WAIT_MS = 1000;
 /** Max executed steps to include in history injected into each prompt (keeps tokens manageable) */
 const MAX_HISTORY_IN_PROMPT = 12;
 
-/** System prompt for the AI explorer */
-const SYSTEM_PROMPT = `You are a QA automation expert. Your job is to explore a website and generate Playwright test actions.
+//** System prompt for Bug Hunting Mode */
+const BUG_HUNTING_SYSTEM_PROMPT = `You are a QA automation expert. Your job is to find bugs, crashes, or unhandled exceptions.
 
 Generate a JSON array of Playwright actions. Each action must be an object:
 - "action": one of "navigate", "click", "fill", "screenshot", "wait", "scroll"
@@ -44,11 +45,34 @@ RULES (follow strictly):
 2. Do NOT repeat any action that appears in the "Already executed" history.
 3. Use realistic test data: "John Doe", "test@example.com", "Pass@1234"
 4. Prefer stable selectors: IDs (#id), name attributes ([name="x"]), aria-label, data-testid.
-5. Generate at most ${MAX_ACTIONS_PER_ROUND} actions.
-6. If nothing meaningful is left to do, return exactly: [{"action":"done","reason":"Exploration complete"}]
+5. Generate at most 5 actions.
+6. Actively try to break the site: test boundaries, submit empty/invalid forms, click complex elements.
+7. Check for console errors or broken navigation.
+8. If nothing new can be tested, return exactly: [{"action":"done","reason":"All elements tested"}]
 
 Example:
 [{"action":"screenshot","reason":"Capture initial state"},{"action":"click","selector":"#login-btn","reason":"Open login form"}]`;
+
+/** System prompt for Business Auto-Doc Mode */
+const DOCUMENTATION_SYSTEM_PROMPT = `You are a business analyst and QA mapping agent. Your job is to explore a website to catalog its features, components, and user journeys.
+
+Generate a JSON array of Playwright actions. Each action must be an object:
+- "action": one of "navigate", "click", "fill", "screenshot", "wait", "scroll"
+- "selector": CSS selector for the element (required for click, fill, scroll)
+- "value": text to type (fill), URL (navigate), or milliseconds (wait)
+- "reason": one short sentence explaining the business/functional intent of this action (e.g. "Access the checkout form to start payment process")
+
+RULES (follow strictly):
+1. Return ONLY the raw JSON array. No markdown, no explanation, no code fences.
+2. Do NOT repeat any action that appears in the "Already executed" history.
+3. Prefer stable selectors: IDs (#id), name attributes ([name="x"]), aria-label, data-testid.
+4. Generate at most 5 actions.
+5. Focus on business coverage: visit unique routes, scan major forms and features, and catalog key page elements.
+6. Write the "reason" field in professional business/functional terms, describing what the user intends to achieve.
+7. If all key business flows and pages have been visited, return exactly: [{"action":"done","reason":"Business crawl complete"}]
+
+Example:
+[{"action":"screenshot","reason":"Verify page layout and promotional banners"},{"action":"click","selector":"a.nav-shop","reason":"Access product shop catalog directory"}]`;
 
 
 /**
@@ -104,7 +128,12 @@ export async function runExploratoryTest(options) {
     cookies = [],
     model = DEFAULT_MODEL,
     ollamaUrl = OLLAMA_BASE_URL,
-    onProgress = () => {}
+    runId,
+    onProgress = () => {},
+    signal,
+    browserName = 'chrome',
+    exploratoryType = 'bug-hunting',
+    deviceProfile = 'desktop'
   } = options;
 
   const startTime = new Date();
@@ -113,6 +142,32 @@ export async function runExploratoryTest(options) {
   let browser = null;
   let context = null;
   let page = null;
+  let videoDir = null;
+
+  // Crawl storage for site documentation mode
+  const sitemap = new Map();
+  const locators = new Map();
+  const transitions = [];
+
+  const abortHandler = async () => {
+    onProgress({ type: 'status', message: 'Test cancelled by user.' });
+    if (page) {
+      try { await page.close(); } catch (_) {}
+    }
+    if (context) {
+      try { await context.close(); } catch (_) {}
+    }
+    if (browser) {
+      try { await browser.close(); } catch (_) {}
+    }
+  };
+
+  if (signal) {
+    if (signal.aborted) {
+      throw new Error('Test run cancelled by user');
+    }
+    signal.addEventListener('abort', abortHandler);
+  }
 
   try {
     // --- Validate Ollama ---
@@ -130,15 +185,41 @@ export async function runExploratoryTest(options) {
     }
 
     // --- Launch Browser ---
-    onProgress({ type: 'status', message: 'Launching browser...' });
-    browser = await chromium.launch({
-      headless: false,
-      slowMo: 400
-    });
+    onProgress({ type: 'status', message: `Launching browser ${browserName}...` });
+    if (browserName === 'firefox') {
+      browser = await firefox.launch({
+        headless: false,
+        slowMo: 400
+      });
+    } else if (browserName === 'edge') {
+      browser = await chromium.launch({
+        headless: false,
+        slowMo: 400,
+        channel: 'msedge'
+      });
+    } else {
+      browser = await chromium.launch({
+        headless: false,
+        slowMo: 400
+      });
+    }
 
-    context = await browser.newContext({
-      viewport: { width: 1280, height: 720 }
-    });
+    videoDir = runId ? path.join(__dirname, 'reports', runId, 'videos') : null;
+    const contextOptions = {
+      viewport: { width: 1280, height: 720 },
+      ...(videoDir ? { recordVideo: { dir: videoDir } } : {})
+    };
+
+    if (deviceProfile && deviceProfile !== 'desktop') {
+      let profileName = deviceProfile;
+      if (profileName === 'Galaxy S22' && !devices[profileName]) {
+        profileName = 'Galaxy S24';
+      }
+      const deviceConfig = devices[profileName] || {};
+      Object.assign(contextOptions, deviceConfig);
+    }
+
+    context = await browser.newContext(contextOptions);
 
     // --- Inject cookies ---
     if (cookies.length > 0) {
@@ -170,6 +251,7 @@ export async function runExploratoryTest(options) {
     const navStart = Date.now();
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: ACTION_TIMEOUT_MS });
+      const screenshot = await captureScreenshot(page);
       steps.push({
         name: `Navigate to ${url}`,
         action: 'navigate',
@@ -178,11 +260,41 @@ export async function runExploratoryTest(options) {
         status: 'passed',
         duration: Date.now() - navStart,
         error: null,
-        screenshot: await captureScreenshot(page),
+        screenshot,
         reason: 'Initial navigation to target URL'
       });
       onProgress({ type: 'step-result', status: 'passed', message: '✅ Initial navigation successful' });
+
+      // Catalog initial page state for documentation mode
+      if (exploratoryType === 'documentation') {
+        const pageContext = await extractPageContext(page);
+        const currentUrl = page.url();
+        const currentTitle = pageContext.title || 'Home';
+        let pathname = '/';
+        try {
+          pathname = new URL(currentUrl).pathname;
+        } catch (_) {}
+        sitemap.set(pathname, { title: currentTitle, headings: pageContext.headings || [] });
+        catalogElements(pathname, pageContext, locators);
+        transitions.push({
+          from: 'Start',
+          to: pathname,
+          action: `Navigate to ${url}`,
+          reason: 'Initial page load',
+          screenshot
+        });
+      }
     } catch (err) {
+      const diagnostics = await runFailureDiagnostics({
+        page,
+        action: 'navigate',
+        selector: '',
+        value: url,
+        errorMsg: err.message,
+        model,
+        ollamaUrl
+      });
+
       steps.push({
         name: `Navigate to ${url}`,
         action: 'navigate',
@@ -192,7 +304,8 @@ export async function runExploratoryTest(options) {
         duration: Date.now() - navStart,
         error: err.message,
         screenshot: null,
-        reason: 'Initial navigation failed'
+        reason: 'Initial navigation failed',
+        diagnostics
       });
       throw new Error(`Failed to navigate to ${url}: ${err.message}`);
     }
@@ -212,6 +325,9 @@ export async function runExploratoryTest(options) {
     const executedHistory = [];
 
     for (let round = 1; round <= MAX_EXPLORATION_ROUNDS && !explorationComplete; round++) {
+      if (signal?.aborted) {
+        throw new Error('Test run cancelled by user');
+      }
       onProgress({
         type: 'status',
         message: `🤖 Exploration round ${round}/${MAX_EXPLORATION_ROUNDS} — Asking AI for next actions...`
@@ -223,7 +339,7 @@ export async function runExploratoryTest(options) {
       // Query Ollama for next actions, passing executed history to prevent repetition/hallucination
       let actions;
       try {
-        actions = await queryOllamaForActions(ollamaUrl, model, url, pageContext, round, executedHistory);
+        actions = await queryOllamaForActions(ollamaUrl, model, url, pageContext, round, executedHistory, signal, exploratoryType);
       } catch (err) {
         onProgress({ type: 'error', message: `Ollama query failed: ${err.message}` });
         steps.push({
@@ -255,6 +371,9 @@ export async function runExploratoryTest(options) {
       // Execute each action
       const actionsToExecute = actions.slice(0, MAX_ACTIONS_PER_ROUND);
       for (let i = 0; i < actionsToExecute.length; i++) {
+        if (signal?.aborted) {
+          throw new Error('Test run cancelled by user');
+        }
         const actionDef = actionsToExecute[i];
         totalActionsExecuted++;
         const stepName = `[R${round}] ${actionDef.action}${actionDef.selector ? ` → ${actionDef.selector}` : ''}`;
@@ -265,7 +384,11 @@ export async function runExploratoryTest(options) {
           message: `Step ${totalActionsExecuted}: ${stepName} — ${actionDef.reason || ''}`
         });
 
-        const stepResult = await executeExploratoryAction(page, actionDef, stepName);
+        const fromUrl = page.url();
+        let fromPathname = '/';
+        try { fromPathname = new URL(fromUrl).pathname; } catch (_) {}
+
+        const stepResult = await executeExploratoryAction(page, actionDef, stepName, url, signal, model, ollamaUrl);
         steps.push(stepResult);
 
         // Record this action in history so future rounds know it was attempted
@@ -275,6 +398,26 @@ export async function runExploratoryTest(options) {
           value: actionDef.value || '',
           status: stepResult.status
         });
+
+        // Catalog the new page if successfully navigated/interacted
+        if (exploratoryType === 'documentation' && stepResult.status === 'passed') {
+          const postPageContext = await extractPageContext(page);
+          const toUrl = page.url();
+          const toTitle = postPageContext.title || 'Page';
+          let toPathname = '/';
+          try { toPathname = new URL(toUrl).pathname; } catch (_) {}
+
+          sitemap.set(toPathname, { title: toTitle, headings: postPageContext.headings || [] });
+          catalogElements(toPathname, postPageContext, locators);
+
+          transitions.push({
+            from: fromPathname,
+            to: toPathname,
+            action: stepName,
+            reason: actionDef.reason || '',
+            screenshot: stepResult.screenshot
+          });
+        }
 
         onProgress({
           type: 'step-result',
@@ -317,15 +460,51 @@ export async function runExploratoryTest(options) {
       reason: ''
     });
   } finally {
+    if (signal) {
+      signal.removeEventListener('abort', abortHandler);
+    }
     // --- Cleanup ---
-    if (page) {
-      try { await page.close(); } catch (_) { /* ignore */ }
-    }
-    if (context) {
-      try { await context.close(); } catch (_) { /* ignore */ }
-    }
-    if (browser) {
-      try { await browser.close(); } catch (_) { /* ignore */ }
+    if (!signal?.aborted) {
+      let videoPath = null;
+      if (videoDir && page) {
+        try {
+          const video = page.video();
+          if (video) {
+            videoPath = await video.path();
+          }
+        } catch (err) {
+          console.warn('Failed to retrieve video path:', err);
+        }
+      }
+
+      if (page) {
+        try { await page.close(); } catch (_) { /* ignore */ }
+      }
+      if (context) {
+        try { await context.close(); } catch (_) { /* ignore */ }
+      }
+      if (browser) {
+        try { await browser.close(); } catch (_) { /* ignore */ }
+      }
+
+      if (videoPath && fs.existsSync(videoPath)) {
+        const hasFailure = steps.some(s => s.status === 'failed');
+        if (hasFailure) {
+          const targetVideoPath = path.join(__dirname, 'reports', runId, `video-${browserName}.webm`);
+          try {
+            fs.mkdirSync(path.dirname(targetVideoPath), { recursive: true });
+            fs.copyFileSync(videoPath, targetVideoPath);
+            onProgress({ type: 'info', message: `Video recorded for failure scenario: video-${browserName}.webm` });
+          } catch (err) {
+            console.warn(`Failed to copy video to final destination: ${err.message}`);
+          }
+        }
+        try {
+          fs.rmSync(videoDir, { recursive: true, force: true });
+        } catch (err) {
+          console.warn(`Failed to clean up temporary videos folder: ${err.message}`);
+        }
+      }
     }
   }
 
@@ -334,12 +513,18 @@ export async function runExploratoryTest(options) {
     testName: 'AI Exploratory Test',
     url,
     mode: 'exploratory',
+    exploratoryType,
     model,
     startTime: startTime.toISOString(),
     endTime: endTime.toISOString(),
     steps,
     consoleErrors,
-    cookies
+    cookies,
+    crawlResults: exploratoryType === 'documentation' ? {
+      sitemap: Array.from(sitemap.entries()),
+      locators: Array.from(locators.values()),
+      transitions: transitions
+    } : null
   };
 
   onProgress({ type: 'complete', message: 'Exploratory test complete', results });
@@ -436,10 +621,45 @@ async function extractPageContext(page) {
 
 
 /**
+ * Catalog inputs and buttons into the locators map for Site Documentation Mode
+ */
+function catalogElements(pathname, pageContext, locators) {
+  if (pageContext.inputs) {
+    pageContext.inputs.forEach(input => {
+      const key = `${pathname}::${input.selector}`;
+      if (!locators.has(key)) {
+        locators.set(key, {
+          page: pathname,
+          type: input.type || 'input',
+          name: input.name || '',
+          placeholder: input.placeholder || '',
+          selector: input.selector
+        });
+      }
+    });
+  }
+  if (pageContext.buttons) {
+    pageContext.buttons.forEach(button => {
+      const key = `${pathname}::${button.selector}`;
+      if (!locators.has(key)) {
+        locators.set(key, {
+          page: pathname,
+          type: 'button',
+          name: button.text || '',
+          placeholder: '',
+          selector: button.selector
+        });
+      }
+    });
+  }
+}
+
+
+/**
  * Query Ollama for the next set of exploration actions
  * @param {string[]} executedHistory - Summary of already-executed actions to prevent repetition
  */
-async function queryOllamaForActions(ollamaUrl, model, targetUrl, pageContext, round, executedHistory = []) {
+async function queryOllamaForActions(ollamaUrl, model, targetUrl, pageContext, round, executedHistory = [], signal, exploratoryType = 'bug-hunting') {
   // Build a compact page context string — keep it short for small local models
   const contextStr = [
     `Page: "${pageContext.title}" | URL: ${pageContext.url}`,
@@ -465,7 +685,9 @@ async function queryOllamaForActions(ollamaUrl, model, targetUrl, pageContext, r
         .join('\n')}`
     : '';
 
-  const prompt = `${SYSTEM_PROMPT}${historyBlock}
+  const systemPrompt = exploratoryType === 'documentation' ? DOCUMENTATION_SYSTEM_PROMPT : BUG_HUNTING_SYSTEM_PROMPT;
+
+  const prompt = `${systemPrompt}${historyBlock}
 
 Current page state (Round ${round}/${MAX_EXPLORATION_ROUNDS}):
 ${contextStr}
@@ -477,6 +699,15 @@ Generate the next actions. Return ONLY a valid JSON array:`;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS);
+
+    const onAbort = () => controller.abort();
+    if (signal) {
+      if (signal.aborted) {
+        controller.abort();
+      } else {
+        signal.addEventListener('abort', onAbort);
+      }
+    }
 
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
@@ -493,6 +724,9 @@ Generate the next actions. Return ONLY a valid JSON array:`;
     });
 
     clearTimeout(timeoutId);
+    if (signal) {
+      signal.removeEventListener('abort', onAbort);
+    }
 
     if (!response.ok) {
       throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
@@ -518,11 +752,11 @@ Generate the next actions. Return ONLY a valid JSON array:`;
  * single objects, wrapped arrays, and minor JSON syntax errors.
  */
 function extractActionsArray(response) {
-  const text = response.trim();
+  let cleaned = response.trim();
 
-  // 1. Strip markdown code fences if present
-  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const cleaned = fenceMatch ? fenceMatch[1].trim() : text;
+  // Strip opening/closing code fences if present, even if incomplete (e.g. truncated response)
+  cleaned = cleaned.replace(/^```(json)?/i, '').trim();
+  cleaned = cleaned.replace(/```$/, '').trim();
 
   // 2. Try direct parse on cleaned text
   try {
@@ -617,18 +851,32 @@ function repairTruncatedJson(text) {
 /**
  * Execute a single exploratory action with error handling
  */
-async function executeExploratoryAction(page, actionDef, stepName) {
+async function executeExploratoryAction(page, actionDef, stepName, targetUrl, signal, model, ollamaUrl) {
   const { action, selector, value, reason = '' } = actionDef;
   let lastError = null;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    if (signal?.aborted) {
+      throw new Error('Test run cancelled by user');
+    }
     const stepStart = Date.now();
 
     try {
       let interactionResult = null;
       switch (action) {
         case 'navigate':
-          await page.goto(value || selector, {
+          let target = value || selector;
+          if (!target) {
+            target = targetUrl;
+          } else {
+            try {
+              const base = page.url() || targetUrl;
+              target = new URL(target, base).href;
+            } catch (_) {
+              // fallback
+            }
+          }
+          await page.goto(target, {
             waitUntil: 'domcontentloaded',
             timeout: ACTION_TIMEOUT_MS
           });
@@ -636,14 +884,14 @@ async function executeExploratoryAction(page, actionDef, stepName) {
 
         case 'click':
           if (!selector) throw new Error('Click requires a selector');
-          interactionResult = await executeInteraction(page, 'click', selector, '', 8000);
+          interactionResult = await executeInteraction(page, 'click', selector, '', ACTION_TIMEOUT_MS);
           if (interactionResult.status === 'failed') throw new Error(interactionResult.error);
           await page.waitForTimeout(500);
           break;
 
         case 'fill':
           if (!selector) throw new Error('Fill requires a selector');
-          interactionResult = await executeInteraction(page, 'fill', selector, value || 'test', 8000);
+          interactionResult = await executeInteraction(page, 'fill', selector, value || 'test', ACTION_TIMEOUT_MS);
           if (interactionResult.status === 'failed') throw new Error(interactionResult.error);
           break;
 
@@ -656,13 +904,17 @@ async function executeExploratoryAction(page, actionDef, stepName) {
           break;
 
         case 'scroll':
-          interactionResult = await executeInteraction(page, 'scroll', selector, '', 8000);
+          interactionResult = await executeInteraction(page, 'scroll', selector, '', ACTION_TIMEOUT_MS);
           if (interactionResult.status === 'failed') throw new Error(interactionResult.error);
           await page.waitForTimeout(300);
           break;
 
         default:
           throw new Error(`Unknown action: ${action}`);
+      }
+
+      if (signal?.aborted) {
+        throw new Error('Test run cancelled by user');
       }
 
       const screenshot = await captureScreenshot(page);
@@ -686,6 +938,9 @@ async function executeExploratoryAction(page, actionDef, stepName) {
       };
 
     } catch (error) {
+      if (signal?.aborted) {
+        throw new Error('Test run cancelled by user');
+      }
       lastError = error;
       console.warn(`⚠️ Attempt ${attempt}/${MAX_RETRIES} failed for "${stepName}": ${error.message}`);
 
@@ -697,7 +952,21 @@ async function executeExploratoryAction(page, actionDef, stepName) {
   }
 
   // All retries exhausted
+  if (signal?.aborted) {
+    throw new Error('Test run cancelled by user');
+  }
   const screenshot = await captureScreenshot(page);
+
+  const diagnostics = await runFailureDiagnostics({
+    page,
+    action,
+    selector,
+    value,
+    errorMsg: lastError?.message || 'Unknown error',
+    model,
+    ollamaUrl
+  });
+
   return {
     name: stepName,
     action,
@@ -707,7 +976,8 @@ async function executeExploratoryAction(page, actionDef, stepName) {
     duration: 0,
     error: lastError?.message || 'Unknown error',
     screenshot,
-    reason: `${reason} (Failed after ${MAX_RETRIES} attempts)`
+    reason: `${reason} (Failed after ${MAX_RETRIES} attempts)`,
+    diagnostics
   };
 }
 

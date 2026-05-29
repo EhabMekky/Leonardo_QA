@@ -20,6 +20,7 @@ import { fileURLToPath } from 'url';
 import { runScriptedTest } from './scripted.js';
 import { runExploratoryTest, checkOllamaStatus } from './exploratory.js';
 import { generateReport } from './report-generator.js';
+import { generateDocxReport } from './docx-generator.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -155,8 +156,26 @@ app.get('/api/reports', (req, res) => {
  */
 app.post('/run-test', upload.single('csvFile'), async (req, res) => {
   try {
-    const { url, cookies: cookiesStr, exploratoryMode, model, csvText } = req.body;
+    const { url, cookies: cookiesStr, exploratoryMode, exploratoryType, model, csvText, browsers: browsersRaw, deviceProfile } = req.body;
     const csvFile = req.file;
+
+    // Parse browsers array
+    let browsers = ['chrome'];
+    if (browsersRaw) {
+      if (Array.isArray(browsersRaw)) {
+        browsers = browsersRaw;
+      } else {
+        try {
+          const parsed = JSON.parse(browsersRaw);
+          browsers = Array.isArray(parsed) ? parsed : [browsersRaw];
+        } catch (_) {
+          browsers = browsersRaw.split(',').map(b => b.trim()).filter(Boolean);
+        }
+      }
+    }
+    if (browsers.length === 0) {
+      browsers = ['chrome'];
+    }
 
     // --- Validate URL ---
     if (!url || !url.trim()) {
@@ -226,15 +245,18 @@ app.post('/run-test', upload.single('csvFile'), async (req, res) => {
 
     // --- Create run ID ---
     const runId = `run-${Date.now()}`;
+    const controller = new AbortController();
     const runData = {
       id: runId,
       status: 'running',
       mode: isExploratory ? 'exploratory' : 'scripted',
+      exploratoryType: isExploratory ? (exploratoryType || 'bug-hunting') : null,
       url,
       model: selectedModel,
       startedAt: new Date().toISOString(),
       progress: [],
-      sseClients: []
+      sseClients: [],
+      controller
     };
     activeRuns.set(runId, runData);
 
@@ -253,13 +275,42 @@ app.post('/run-test', upload.single('csvFile'), async (req, res) => {
       csvFile,
       csvText,
       isExploratory,
-      selectedModel
-    });
+      exploratoryType: exploratoryType || 'bug-hunting',
+      selectedModel,
+      browsers,
+      deviceProfile: deviceProfile || 'desktop'
+    }, controller.signal);
 
   } catch (error) {
     console.error('Error starting test:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+/**
+ * POST /cancel-test
+ * Cancel a running test
+ */
+app.post('/cancel-test', (req, res) => {
+  const { runId } = req.body;
+  if (!runId) {
+    return res.status(400).json({ error: 'runId is required' });
+  }
+
+  const runData = activeRuns.get(runId);
+  if (!runData) {
+    return res.status(404).json({ error: 'Active test run not found' });
+  }
+
+  if (runData.status !== 'running') {
+    return res.status(400).json({ error: 'Test run is not active' });
+  }
+
+  if (runData.controller) {
+    runData.controller.abort();
+  }
+
+  res.json({ success: true, message: 'Test cancellation signal sent' });
 });
 
 /**
@@ -379,7 +430,7 @@ function prepareCSVContent(rawText) {
 /**
  * Converts natural language description into valid CSV using Ollama
  */
-async function convertNaturalLanguageToCSV(text, model, ollamaUrl, targetUrl) {
+async function convertNaturalLanguageToCSV(text, model, ollamaUrl, targetUrl, signal) {
   const baseUrl = targetUrl.replace(/\/$/, '');
   const prompt = `You are a senior QA automation engineer specializing in Playwright end-to-end testing. Convert the test description below into a precise, executable CSV test plan.
 
@@ -457,6 +508,16 @@ ${text}
 CSV OUTPUT (header + rows only, nothing else):`;
 
   try {
+    const controller = new AbortController();
+    const onAbort = () => controller.abort();
+    if (signal) {
+      if (signal.aborted) {
+        controller.abort();
+      } else {
+        signal.addEventListener('abort', onAbort);
+      }
+    }
+
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -464,8 +525,13 @@ CSV OUTPUT (header + rows only, nothing else):`;
         model,
         prompt,
         stream: false
-      })
+      }),
+      signal: controller.signal
     });
+
+    if (signal) {
+      signal.removeEventListener('abort', onAbort);
+    }
 
     if (!response.ok) {
       throw new Error(`Ollama returned ${response.status} during text conversion`);
@@ -503,6 +569,117 @@ CSV OUTPUT (header + rows only, nothing else):`;
   }
 }
 
+/**
+ * Batch enrich locators with plain-English business name, functional description, and user value
+ */
+async function enrichLocatorsWithBusinessContext(locators, model, ollamaUrl) {
+  if (!locators || locators.length === 0) return [];
+  
+  // Group locators by page path
+  const locatorsByPage = new Map();
+  for (const loc of locators) {
+    if (!locatorsByPage.has(loc.page)) {
+      locatorsByPage.set(loc.page, []);
+    }
+    locatorsByPage.get(loc.page).push(loc);
+  }
+  
+  const enrichedList = [];
+  
+  for (const [pagePath, pageLocs] of locatorsByPage.entries()) {
+    console.log(`[DOC-GEN] Translating/Enriching ${pageLocs.length} components on page ${pagePath}...`);
+    
+    // Create a trimmed representation to minimize prompt size
+    const inputList = pageLocs.map(l => ({
+      selector: l.selector,
+      type: l.type,
+      name: l.name || '',
+      placeholder: l.placeholder || ''
+    }));
+    
+    const prompt = `You are a senior business analyst and product spec writer. Analyze the following interactive user interface elements discovered on the page path "${pagePath}":
+
+${JSON.stringify(inputList, null, 2)}
+
+For each element, generate:
+1. "featureName": A clear, reader-friendly business name for this component (e.g. "User Email Input Field", "Checkout Button").
+2. "functionalDescription": A concise 1-sentence description in plain business English explaining what the component does from the customer's perspective.
+3. "businessValue": A brief 1-sentence explanation of why this component is valuable to the business or user experience.
+
+Respond ONLY with a valid JSON array matching this schema:
+[
+  {
+    "selector": "exact CSS selector from input",
+    "featureName": "...",
+    "functionalDescription": "...",
+    "businessValue": "..."
+  }
+]
+Do NOT include any markdown code fences, backticks, or other text outside the JSON array.`;
+
+    try {
+      const response = await fetch(`${ollamaUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          prompt,
+          stream: false
+        }),
+        signal: AbortSignal.timeout(60000)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Ollama returned status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      let text = (data.response || '').trim();
+      
+      // Strip opening/closing code fences if present, even if incomplete (e.g. truncated response)
+      let cleaned = text.replace(/^```(json)?/i, '').trim();
+      cleaned = cleaned.replace(/```$/, '').trim();
+      
+      let parsed = [];
+      try {
+        const arrayStart = cleaned.indexOf('[');
+        const arrayEnd = cleaned.lastIndexOf(']');
+        if (arrayStart !== -1 && arrayEnd > arrayStart) {
+          parsed = JSON.parse(cleaned.substring(arrayStart, arrayEnd + 1));
+        } else {
+          parsed = JSON.parse(cleaned);
+        }
+      } catch (e) {
+        console.warn(`[DOC-GEN] Failed to parse JSON from Ollama business context: ${e.message}`);
+      }
+      
+      const enrichedMap = new Map((parsed || []).map(item => [item.selector, item]));
+      
+      for (const loc of pageLocs) {
+        const enriched = enrichedMap.get(loc.selector);
+        enrichedList.push({
+          ...loc,
+          featureName: enriched?.featureName || loc.name || loc.placeholder || 'Interactive Element',
+          functionalDescription: enriched?.functionalDescription || `Allows user interaction with the ${loc.type || 'component'} element.`,
+          businessValue: enriched?.businessValue || 'Improves page engagement and usability.'
+        });
+      }
+    } catch (err) {
+      console.warn(`[DOC-GEN] Failed to enrich locators for page ${pagePath}: ${err.message}`);
+      for (const loc of pageLocs) {
+        enrichedList.push({
+          ...loc,
+          featureName: loc.name || loc.placeholder || 'Interactive Element',
+          functionalDescription: `Allows user interaction with the ${loc.type || 'component'} element.`,
+          businessValue: 'Improves page engagement and usability.'
+        });
+      }
+    }
+  }
+  
+  return enrichedList;
+}
+
 
 // ============================================================================
 // ASYNC TEST EXECUTION
@@ -511,8 +688,9 @@ CSV OUTPUT (header + rows only, nothing else):`;
 /**
  * Execute test asynchronously and stream progress via SSE
  */
-async function executeTestAsync(runData, testConfig) {
-  const { url, cookies, csvFile, csvText, isExploratory, selectedModel } = testConfig;
+async function executeTestAsync(runData, testConfig, signal) {
+  const { url, cookies, csvFile, csvText, isExploratory, exploratoryType = 'bug-hunting', selectedModel, browsers = ['chrome'], deviceProfile = 'desktop' } = testConfig;
+  const startTime = new Date();
 
   // Progress callback that broadcasts to all SSE clients
   const onProgress = (event) => {
@@ -527,52 +705,169 @@ async function executeTestAsync(runData, testConfig) {
   };
 
   try {
-    let results;
-
-    if (isExploratory) {
-      // --- AI Exploratory Mode ---
-      results = await runExploratoryTest({
-        url,
-        cookies,
-        model: selectedModel,
-        ollamaUrl: OLLAMA_URL,
-        onProgress
-      });
-    } else {
-      // --- Scripted CSV Mode ---
+    let compiledCsvContent = null;
+    if (!isExploratory) {
       let content = csvFile ? csvFile.buffer.toString('utf-8') : csvText;
       
       const prepared = prepareCSVContent(content);
       if (prepared === null) {
         onProgress({ type: 'status', message: '🤖 Converting natural language steps to structured CSV using Ollama...' });
         try {
-          content = await convertNaturalLanguageToCSV(content, selectedModel, OLLAMA_URL, url);
-          onProgress({ type: 'info', message: `Successfully compiled natural language test case to CSV:\n\n${content}` });
+          compiledCsvContent = await convertNaturalLanguageToCSV(content, selectedModel, OLLAMA_URL, url, signal);
+          onProgress({ type: 'info', message: `Successfully compiled natural language test case to CSV:\n\n${compiledCsvContent}` });
         } catch (err) {
           throw new Error(`AI translation failed: ${err.message}`);
         }
       } else {
-        content = prepared;
+        compiledCsvContent = prepared;
       }
-
-      results = await runScriptedTest({
-        url,
-        cookies,
-        csvContent: content,
-        model: selectedModel,
-        onProgress
-      });
     }
+
+    const resultsByBrowser = {};
+    const runnerPromises = browsers.map(async (browserName) => {
+      // Create a browser-specific progress callback
+      const browserOnProgress = (event) => {
+        onProgress({ ...event, browser: browserName });
+      };
+
+      try {
+        browserOnProgress({ type: 'status', message: `Starting test execution on ${browserName}...` });
+        let runResult;
+
+        if (isExploratory) {
+          runResult = await runExploratoryTest({
+            url,
+            cookies,
+            model: selectedModel,
+            ollamaUrl: OLLAMA_URL,
+            runId: runData.id,
+            onProgress: browserOnProgress,
+            signal,
+            browserName,
+            exploratoryType,
+            deviceProfile
+          });
+        } else {
+          runResult = await runScriptedTest({
+            url,
+            cookies,
+            csvContent: compiledCsvContent,
+            model: selectedModel,
+            ollamaUrl: OLLAMA_URL,
+            runId: runData.id,
+            onProgress: browserOnProgress,
+            signal,
+            browserName,
+            deviceProfile
+          });
+        }
+
+        resultsByBrowser[browserName] = runResult;
+        browserOnProgress({ type: 'browser-status', status: 'passed' });
+      } catch (error) {
+        console.error(`Browser run failed for ${browserName}:`, error);
+        browserOnProgress({ type: 'browser-status', status: 'failed', error: error.message });
+
+        // Fallback result for failed browser execution
+        resultsByBrowser[browserName] = {
+          testName: isExploratory ? 'AI Exploratory Test' : 'Scripted Test (CSV)',
+          url,
+          mode: isExploratory ? 'exploratory' : 'scripted',
+          model: selectedModel,
+          startTime: startTime.toISOString(),
+          endTime: new Date().toISOString(),
+          steps: [
+            {
+              name: `Execution failure on ${browserName}`,
+              action: 'system',
+              selector: '',
+              value: '',
+              status: 'failed',
+              duration: 0,
+              error: error.message,
+              screenshot: null,
+              reason: `Execution failed: ${error.message}`
+            }
+          ],
+          consoleErrors: [],
+          cookies
+        };
+      }
+    });
+
+    // Run tests concurrently across selected browsers
+    await Promise.all(runnerPromises);
+
+    const endTime = new Date();
+    const consolidatedResults = {
+      testName: isExploratory ? 'AI Exploratory Test' : 'Scripted Test (CSV)',
+      url,
+      mode: isExploratory ? 'exploratory' : 'scripted',
+      exploratoryType: isExploratory ? exploratoryType : null,
+      model: selectedModel,
+      deviceProfile,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      browsers: resultsByBrowser,
+      cookies
+    };
 
     // --- Generate Report ---
     onProgress({ type: 'status', message: '📄 Generating report...' });
-    const reportPath = generateReport(runData.id, results);
+    const reportPath = generateReport(runData.id, consolidatedResults);
     const reportUrl = `/report/${runData.id}`;
+
+    // --- Generate Site Documentation Markdown if requested ---
+    console.log(`[DOC-GEN] Checking documentation gen conditions: isExploratory=${isExploratory}, exploratoryType=${exploratoryType}`);
+    if (isExploratory && exploratoryType === 'documentation') {
+      try {
+        console.log('[DOC-GEN] Starting business enrichment for locators...');
+        onProgress({ type: 'status', message: '🤖 Enriching discovered components with Business Value descriptions using Ollama...' });
+        const browsersData = consolidatedResults.browsers || {};
+        for (const browserName of Object.keys(browsersData)) {
+          const bData = browsersData[browserName];
+          if (bData && bData.crawlResults && bData.crawlResults.locators) {
+            bData.crawlResults.locators = await enrichLocatorsWithBusinessContext(
+              bData.crawlResults.locators,
+              selectedModel,
+              OLLAMA_URL
+            );
+          }
+        }
+
+        console.log('[DOC-GEN] Starting site documentation compilation...');
+        onProgress({ type: 'status', message: '📝 Compiling site documentation markdown...' });
+        const docMarkdownPath = compileSiteDocumentation(runData.id, consolidatedResults);
+        console.log(`[DOC-GEN] Markdown compiled: ${docMarkdownPath}`);
+        onProgress({ type: 'info', message: `✅ Site documentation compiled successfully: ${docMarkdownPath}` });
+
+        console.log('[DOC-GEN] Starting Word spec compilation...');
+        onProgress({ type: 'status', message: '📝 Generating Word Functional Specification (.docx)...' });
+        const docxPath = await generateDocxReport(runData.id, consolidatedResults);
+        console.log(`[DOC-GEN] Word spec compiled: ${docxPath}`);
+        onProgress({ type: 'info', message: `✅ Word Functional Specification generated: ${docxPath}` });
+      } catch (docErr) {
+        console.error('[DOC-GEN] Failed to compile site documentation:', docErr);
+        onProgress({ type: 'warning', message: `⚠️ Failed to compile site documentation: ${docErr.message}` });
+      }
+    }
 
     // Update run data
     runData.status = 'complete';
     runData.reportUrl = reportUrl;
     runData.message = 'Test complete';
+
+    // Calculate aggregated overall test metrics (Total Steps, Passed, Failed) for summary
+    let overallTotal = 0;
+    let overallPassed = 0;
+    let overallFailed = 0;
+
+    for (const b of Object.keys(resultsByBrowser)) {
+      const r = resultsByBrowser[b];
+      overallTotal += r.steps.length;
+      overallPassed += r.steps.filter(s => s.status === 'passed').length;
+      overallFailed += r.steps.filter(s => s.status === 'failed').length;
+    }
 
     // Notify all SSE clients
     const completeEvent = {
@@ -580,12 +875,11 @@ async function executeTestAsync(runData, testConfig) {
       message: 'Test execution complete! Report is ready.',
       reportUrl,
       summary: {
-        total: results.steps.length,
-        passed: results.steps.filter(s => s.status === 'passed').length,
-        failed: results.steps.filter(s => s.status === 'failed').length,
-        duration: results.startTime && results.endTime
-          ? ((new Date(results.endTime) - new Date(results.startTime)) / 1000).toFixed(2) + 's'
-          : 'N/A'
+        total: overallTotal,
+        passed: overallPassed,
+        failed: overallFailed,
+        exploratoryType: isExploratory ? exploratoryType : null,
+        duration: ((endTime - startTime) / 1000).toFixed(2) + 's'
       }
     };
 
@@ -620,6 +914,163 @@ async function executeTestAsync(runData, testConfig) {
 }
 
 
+/**
+ * Merges browser crawl results and creates a consolidated Markdown Business Feature Specification.
+ */
+function compileSiteDocumentation(runId, results) {
+  const reportsDir = path.join(__dirname, 'reports', runId);
+  const screenshotsDir = path.join(reportsDir, 'screenshots');
+  if (!fs.existsSync(screenshotsDir)) {
+    fs.mkdirSync(screenshotsDir, { recursive: true });
+  }
+
+  const sitemapMap = new Map(); // pathname -> { title, headings }
+  const locatorsMap = new Map(); // key -> locator object
+  const allTransitions = [];
+
+  const browsersData = results.browsers || {};
+  for (const browserName of Object.keys(browsersData)) {
+    const bData = browsersData[browserName];
+    if (!bData || !bData.crawlResults) continue;
+
+    const { sitemap = [], locators = [], transitions = [] } = bData.crawlResults;
+
+    // 1. Merge sitemaps
+    for (const [pathname, data] of sitemap) {
+      const title = typeof data === 'string' ? data : (data.title || pathname);
+      const headings = typeof data === 'string' ? [] : (data.headings || []);
+      if (!sitemapMap.has(pathname) || (title && (!sitemapMap.get(pathname) || sitemapMap.get(pathname).title === pathname))) {
+        sitemapMap.set(pathname, { title, headings });
+      }
+    }
+
+    // 2. Merge locators
+    for (const loc of locators) {
+      const key = `${loc.page}::${loc.selector}`;
+      if (!locatorsMap.has(key)) {
+        locatorsMap.set(key, loc);
+      }
+    }
+
+    // 3. Process transitions and save screenshots
+    transitions.forEach((t, index) => {
+      let relativeScreenshotPath = '';
+      if (t.screenshot) {
+        const screenshotFilename = `step-${index + 1}-${browserName}.png`;
+        const absoluteScreenshotPath = path.join(screenshotsDir, screenshotFilename);
+        try {
+          fs.writeFileSync(absoluteScreenshotPath, Buffer.from(t.screenshot, 'base64'));
+          relativeScreenshotPath = `screenshots/${screenshotFilename}`;
+        } catch (err) {
+          console.warn(`Failed to write screenshot file: ${err.message}`);
+        }
+      }
+
+      allTransitions.push({
+        browser: browserName,
+        from: t.from,
+        to: t.to,
+        action: t.action,
+        reason: t.reason,
+        relativeScreenshotPath
+      });
+    });
+  }
+
+  // Generate sitemap markdown table
+  let sitemapMd = '| No. | Page Title | Visited URL Pathname | Heading Hierarchy Detected |\n| --- | --- | --- | --- |\n';
+  if (sitemapMap.size === 0) {
+    sitemapMd += '| (None) | (No pages cataloged) | (None) | (None) |\n';
+  } else {
+    let index = 1;
+    for (const [pathname, data] of sitemapMap.entries()) {
+      const headingsStr = data.headings && data.headings.length
+        ? data.headings.map(h => `${h.tag}: "${h.text}"`).join('<br>')
+        : 'None';
+      sitemapMd += `| ${index}. | **${data.title}** | \`${pathname}\` | ${headingsStr} |\n`;
+      index++;
+    }
+  }
+
+  // Generate Business Feature Catalog
+  let locatorsMd = '| Page Name | Feature/Component | Functional Description | Business / User Value |\n| --- | --- | --- | --- |\n';
+  if (locatorsMap.size === 0) {
+    locatorsMd += '| (None) | (No elements cataloged) | (None) | (None) |\n';
+  } else {
+    for (const loc of locatorsMap.values()) {
+      const pageName = loc.page || '/';
+      const featureName = loc.featureName || loc.name || loc.placeholder || 'Interactive Element';
+      const desc = loc.functionalDescription || 'Allows user interaction.';
+      const bizVal = loc.businessValue || 'Improves usability.';
+      locatorsMd += `| **${pageName}** | ${featureName} | ${desc} | ${bizVal} |\n`;
+    }
+  }
+
+  // Generate transitions user journey summary
+  let journeyMd = '';
+  if (allTransitions.length === 0) {
+    journeyMd = '_No page transitions recorded._\n';
+  } else {
+    // Group transitions by browser
+    const browsers = [...new Set(allTransitions.map(t => t.browser))];
+    for (const browser of browsers) {
+      const bTransitions = allTransitions.filter(t => t.browser === browser);
+      journeyMd += `### Browser Run: **${browser.toUpperCase()}**\n\n`;
+      bTransitions.forEach((t, idx) => {
+        journeyMd += `#### Step ${idx + 1}: ${t.action}\n\n`;
+        if (t.reason) {
+          journeyMd += `**Functional Intent**: *"${t.reason}"*\n\n`;
+        }
+        journeyMd += `- **From Path**: \`${t.from}\`\n`;
+        journeyMd += `- **To Path**: \`${t.to}\`\n\n`;
+        if (t.relativeScreenshotPath) {
+          journeyMd += `**Visual Proof**:\n![Screenshot for Step ${idx + 1}](${t.relativeScreenshotPath})\n\n`;
+        }
+        journeyMd += '---\n\n';
+      });
+    }
+  }
+
+  // Assemble full markdown report
+  const timestamp = new Date().toLocaleString();
+  const markdownContent = `# 📑 WEBSITE BUSINESS SPECIFICATION & FUNCTIONAL INVENTORY
+  
+This document was automatically generated during an AI-powered business functional crawl.
+
+- **Target Website**: [${results.url}](${results.url})
+- **Crawl Mode**: \`Business Auto-Doc Mode (High-Level Summary)\`
+- **Crawl Date/Time**: ${timestamp}
+- **AI Explorer Model**: \`${results.model}\` (Ollama)
+- **Browser Executed**: \`Chrome (Headless)\`
+
+---
+
+## 🗺️ Section 1: Site Sitemap
+Below is the list of unique page routes mapped by the AI crawler.
+
+${sitemapMd}
+
+---
+
+## 🔍 Section 2: Business Feature Catalog (Functional Inventory)
+A comprehensive catalog of major UI elements, components, and sections discovered on each page, written in plain business English.
+
+${locatorsMd}
+
+---
+
+## 🛣️ Section 3: User Journey & Visual Walkthrough
+A sequential timeline showing exactly how the AI traversed the site, with explanations and visual proofs.
+
+${journeyMd}
+`;
+
+  const mdPath = path.join(reportsDir, 'documentation-report.md');
+  fs.writeFileSync(mdPath, markdownContent, 'utf-8');
+  return mdPath;
+}
+
+
 // ============================================================================
 // SERVER STARTUP
 // ============================================================================
@@ -630,7 +1081,62 @@ if (!fs.existsSync(reportsDir)) {
   fs.mkdirSync(reportsDir, { recursive: true });
 }
 
-app.listen(PORT, () => {
+/**
+ * Helper function to find and remove report folders older than 3 days.
+ * Determines the age of each folder using either its timestamp suffix (e.g. run-[timestamp])
+ * or filesystem modification metadata (fs.statSync().mtimeMs) for folders without a suffix.
+ */
+function cleanupOldReports() {
+  console.log('[CLEANUP] Starting cleanup of old reports...');
+  const dirPath = path.join(__dirname, 'reports');
+  if (!fs.existsSync(dirPath)) {
+    return;
+  }
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    const now = Date.now();
+    const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+    let deletedCount = 0;
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const folderPath = path.join(dirPath, entry.name);
+        let folderTimestamp = null;
+        const match = entry.name.match(/^run-(\d+)$/);
+        if (match) {
+          folderTimestamp = parseInt(match[1], 10);
+        } else {
+          try {
+            const stats = fs.statSync(folderPath);
+            folderTimestamp = stats.mtimeMs;
+          } catch (statErr) {
+            console.error(`[CLEANUP] Failed to read stat for ${entry.name}:`, statErr);
+          }
+        }
+
+        if (folderTimestamp && (now - folderTimestamp > threeDaysMs)) {
+          console.log(`[CLEANUP] Deleting old report folder: ${entry.name}`);
+          try {
+            fs.rmSync(folderPath, { recursive: true, force: true });
+            deletedCount++;
+          } catch (deleteErr) {
+            console.error(`[CLEANUP] Failed to delete folder ${entry.name}:`, deleteErr);
+          }
+        }
+      }
+    }
+    console.log(`[CLEANUP] Cleanup complete. Deleted ${deletedCount} report folders.`);
+  } catch (err) {
+    console.error('[CLEANUP] Error during report cleanup:', err);
+  }
+}
+
+// Run cleanup immediately on startup and schedule every 24 hours
+cleanupOldReports();
+const CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+setInterval(cleanupOldReports, CLEANUP_INTERVAL);
+
+const server = app.listen(PORT, () => {
   console.log(`
 ╭──────────────────────────────────────────────────────────────╮
 │                                                              │
@@ -651,4 +1157,5 @@ app.listen(PORT, () => {
   `);
 });
 
+export { server };
 export default app;

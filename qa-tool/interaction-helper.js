@@ -6,8 +6,167 @@
  * self-healing selector strategies (text, XPath, fuzzy DOM matching,
  * parent/label coordinates), and bypasses overlapping element obstructions.
  */
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REGISTRY_PATH = path.join(__dirname, 'locator-registry.json');
 
+// Pathname Normalization & Key Generator
+function getRegistryKey(pageUrl, originalSelector) {
+  try {
+    const urlObj = new URL(pageUrl);
+    let pathname = urlObj.pathname;
+    // Replace numeric segments (e.g. /products/123 -> /products/:id)
+    pathname = pathname.replace(/\/\d+(?=\/|$)/g, '/:id');
+    // Replace UUID segments (e.g. /user/a5f33... -> /user/:uuid)
+    pathname = pathname.replace(/\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?=\/|$)/g, '/:uuid');
+    return `${pathname}:${originalSelector}`;
+  } catch (_) {
+    return `/:${originalSelector}`;
+  }
+}
+
+// Thread-safe registry load/save/mutate operations
+let isWriting = false;
+const writeQueue = [];
+
+async function loadRegistry() {
+  try {
+    if (!fs.existsSync(REGISTRY_PATH)) {
+      return {};
+    }
+    const content = fs.readFileSync(REGISTRY_PATH, 'utf-8');
+    return JSON.parse(content || '{}');
+  } catch (err) {
+    console.error(`[Registry] Error reading registry: ${err.message}`);
+    return {};
+  }
+}
+
+async function saveRegistry(registry) {
+  return new Promise((resolve, reject) => {
+    writeQueue.push({ registry, resolve, reject });
+    processWriteQueue();
+  });
+}
+
+async function processWriteQueue() {
+  if (isWriting || writeQueue.length === 0) return;
+  isWriting = true;
+  
+  const { registry, resolve, reject } = writeQueue.shift();
+  try {
+    fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2), 'utf-8');
+    resolve();
+  } catch (err) {
+    console.error(`[Registry] Error writing registry: ${err.message}`);
+    reject(err);
+  } finally {
+    isWriting = false;
+    processWriteQueue();
+  }
+}
+
+const updateQueue = [];
+let isUpdating = false;
+
+async function processUpdateQueue() {
+  if (isUpdating || updateQueue.length === 0) return;
+  isUpdating = true;
+  
+  const { updaterFn, resolve, reject } = updateQueue.shift();
+  try {
+    const registry = await loadRegistry();
+    await updaterFn(registry);
+    await saveRegistry(registry);
+    resolve();
+  } catch (err) {
+    console.error(`[Registry] Error mutating registry: ${err.message}`);
+    reject(err);
+  } finally {
+    isUpdating = false;
+    processUpdateQueue();
+  }
+}
+
+function mutateRegistry(updaterFn) {
+  return new Promise((resolve, reject) => {
+    updateQueue.push({ updaterFn, resolve, reject });
+    processUpdateQueue();
+  });
+}
+
+// Helper to record a successful heal to the registry
+async function handleHealSuccess(pageUrl, originalSelector, resolvedSelector, healMethod) {
+  if (resolvedSelector && resolvedSelector !== originalSelector) {
+    await mutateRegistry(async (registry) => {
+      const regKey = getRegistryKey(pageUrl, originalSelector);
+      const entry = registry[regKey] || {
+        original: originalSelector,
+        alternatives: []
+      };
+      entry.healed = resolvedSelector;
+      entry.lastHealed = new Date().toISOString();
+      entry.healCount = (entry.healCount || 0) + 1;
+      if (!entry.alternatives.includes(resolvedSelector)) {
+        entry.alternatives.push(resolvedSelector);
+      }
+      registry[regKey] = entry;
+    });
+  }
+  return {
+    status: 'passed',
+    error: null,
+    healed: true,
+    healMethod,
+    resolvedSelector
+  };
+}
+
+// Standard Playwright action executor supporting coordinates
+async function runStandardAction(page, action, selector, value = '', timeoutMs = 8000) {
+  if (selector.startsWith('Coordinates(')) {
+    const match = selector.match(/Coordinates\((\d+),\s*(\d+)\)/);
+    if (match) {
+      const x = parseInt(match[1], 10);
+      const y = parseInt(match[2], 10);
+      await page.mouse.click(x, y);
+      if (action === 'fill') {
+        await page.keyboard.press('Control+A');
+        await page.keyboard.press('Backspace');
+        await page.keyboard.insertText(value);
+      }
+      return;
+    }
+  }
+
+  switch (action) {
+    case 'click':
+      await page.waitForSelector(selector, { state: 'visible', timeout: timeoutMs });
+      await page.locator(selector).first().click({ timeout: timeoutMs });
+      break;
+
+    case 'fill':
+      await page.waitForSelector(selector, { state: 'visible', timeout: timeoutMs });
+      await page.locator(selector).first().clear({ timeout: timeoutMs });
+      await page.locator(selector).first().fill(value, { timeout: timeoutMs });
+      break;
+
+    case 'scroll':
+      if (selector) {
+        await page.waitForSelector(selector, { state: 'visible', timeout: timeoutMs });
+        await page.locator(selector).first().scrollIntoViewIfNeeded({ timeout: timeoutMs });
+      } else {
+        await page.evaluate(() => window.scrollBy(0, 400));
+      }
+      break;
+
+    default:
+      throw new Error(`Unsupported action in helper: ${action}`);
+  }
+}
 
 /**
  * Execute a page action with self-healing capabilities
@@ -20,41 +179,63 @@
  */
 export async function executeInteraction(page, action, selector, value = '', timeoutMs = 8000) {
   action = action.toLowerCase().trim();
+  const pageUrl = page.url();
+  const regKey = getRegistryKey(pageUrl, selector);
+  const registry = await loadRegistry();
+  
+  let targetSelector = selector;
+  let preHealedUsed = false;
+  
+  // STRATEGY 0: Check Registry Cache
+  if (registry[regKey] && registry[regKey].healed) {
+    targetSelector = registry[regKey].healed;
+    preHealedUsed = true;
+    console.log(`[Registry] Cached selector found: "${selector}" -> "${targetSelector}"`);
+    
+    // Try executing using cached selector
+    try {
+      await runStandardAction(page, action, targetSelector, value, 4000); // lower timeout for cache check
+      
+      // Update success metadata
+      await mutateRegistry(async (reg) => {
+        if (reg[regKey]) {
+          reg[regKey].successRuns = (reg[regKey].successRuns || 0) + 1;
+        }
+      });
+      
+      return {
+        status: 'passed',
+        error: null,
+        healed: true,
+        healMethod: `Registry cache match`,
+        resolvedSelector: targetSelector
+      };
+    } catch (err) {
+      console.warn(`⚠️ Cached selector "${targetSelector}" failed. Invalidating cache and running full healing...`);
+      // Reset targetSelector to original and continue to standard strategies
+      await mutateRegistry(async (reg) => {
+        if (reg[regKey]) {
+          delete reg[regKey].healed;
+        }
+      });
+      targetSelector = selector;
+      preHealedUsed = false;
+    }
+  }
+
   let lastError = null;
 
-  console.log(`[Interaction] Attempting ${action} on "${selector}"...`);
+  console.log(`[Interaction] Attempting ${action} on "${targetSelector}"...`);
 
   // ==========================================================================
   // STRATEGY 1: Standard Playwright Selector Action
   // ==========================================================================
   try {
-    switch (action) {
-      case 'click':
-        await page.waitForSelector(selector, { state: 'visible', timeout: timeoutMs });
-        await page.locator(selector).first().click({ timeout: timeoutMs });
-        return { status: 'passed', error: null, healed: false, healMethod: null, resolvedSelector: selector };
-
-      case 'fill':
-        await page.waitForSelector(selector, { state: 'visible', timeout: timeoutMs });
-        await page.locator(selector).first().clear({ timeout: timeoutMs });
-        await page.locator(selector).first().fill(value, { timeout: timeoutMs });
-        return { status: 'passed', error: null, healed: false, healMethod: null, resolvedSelector: selector };
-
-      case 'scroll':
-        if (selector) {
-          await page.waitForSelector(selector, { state: 'visible', timeout: timeoutMs });
-          await page.locator(selector).first().scrollIntoViewIfNeeded({ timeout: timeoutMs });
-        } else {
-          await page.evaluate(() => window.scrollBy(0, 400));
-        }
-        return { status: 'passed', error: null, healed: false, healMethod: null, resolvedSelector: selector || 'window' };
-
-      default:
-        throw new Error(`Unsupported action in helper: ${action}`);
-    }
+    await runStandardAction(page, action, targetSelector, value, timeoutMs);
+    return { status: 'passed', error: null, healed: false, healMethod: null, resolvedSelector: targetSelector };
   } catch (err) {
     lastError = err;
-    console.warn(`⚠️ Strategy 1 (Standard) failed for ${action} on "${selector}": ${err.message}`);
+    console.warn(`⚠️ Strategy 1 (Standard) failed for ${action} on "${targetSelector}": ${err.message}`);
   }
 
   // ==========================================================================
@@ -248,13 +429,26 @@ export async function executeInteraction(page, action, selector, value = '', tim
           }
           if (locator) {
             await locator.click({ timeout: 4000 });
-            return {
-              status: 'passed',
-              error: null,
-              healed: true,
-              healMethod: `Text locator match ("${kw}")`,
-              resolvedSelector: `text="${kw}"`
-            };
+            const xpath = await locator.evaluate(el => {
+              const getXPath = (element) => {
+                if (element.id) return `//*[@id="${element.id}"]`;
+                if (element === document.body) return 'body';
+                let index = 0;
+                const siblings = element.parentNode.childNodes;
+                for (let i = 0; i < siblings.length; i++) {
+                  const sibling = siblings[i];
+                  if (sibling === element) {
+                    return getXPath(element.parentNode) + '/' + element.tagName.toLowerCase() + '[' + (index + 1) + ']';
+                  }
+                  if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
+                    index++;
+                  }
+                }
+              };
+              return getXPath(el);
+            }).catch(() => null);
+            const resolvedSelector = xpath ? `xpath=${xpath}` : `text="${kw}"`;
+            return await handleHealSuccess(pageUrl, selector, resolvedSelector, `Text locator match ("${kw}")`);
           }
         } else if (action === 'fill') {
           // Look for inputs by placeholder, label, name, or text nearby
@@ -275,13 +469,26 @@ export async function executeInteraction(page, action, selector, value = '', tim
           if (locator) {
             await locator.clear({ timeout: 4000 });
             await locator.fill(value, { timeout: 4000 });
-            return {
-              status: 'passed',
-              error: null,
-              healed: true,
-              healMethod: `Text input locator match ("${kw}")`,
-              resolvedSelector: `input[placeholder/label*="${kw}"]`
-            };
+            const xpath = await locator.evaluate(el => {
+              const getXPath = (element) => {
+                if (element.id) return `//*[@id="${element.id}"]`;
+                if (element === document.body) return 'body';
+                let index = 0;
+                const siblings = element.parentNode.childNodes;
+                for (let i = 0; i < siblings.length; i++) {
+                  const sibling = siblings[i];
+                  if (sibling === element) {
+                    return getXPath(element.parentNode) + '/' + element.tagName.toLowerCase() + '[' + (index + 1) + ']';
+                  }
+                  if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
+                    index++;
+                  }
+                }
+              };
+              return getXPath(el);
+            }).catch(() => null);
+            const resolvedSelector = xpath ? `xpath=${xpath}` : `input[placeholder*="${kw}" i]`;
+            return await handleHealSuccess(pageUrl, selector, resolvedSelector, `Text input locator match ("${kw}")`);
           }
         }
       } catch (err) {
@@ -314,13 +521,7 @@ export async function executeInteraction(page, action, selector, value = '', tim
               await loc.clear({ timeout: 4000 });
               await loc.fill(value, { timeout: 4000 });
             }
-            return {
-              status: 'passed',
-              error: null,
-              healed: true,
-              healMethod: `XPath matching "${kw}"`,
-              resolvedSelector: xpath
-            };
+            return await handleHealSuccess(pageUrl, selector, `xpath=${xpath}`, `XPath matching "${kw}"`);
           }
         }
       } catch (err) {
@@ -436,13 +637,7 @@ export async function executeInteraction(page, action, selector, value = '', tim
           await loc.clear({ timeout: 4000 });
           await loc.fill(value, { timeout: 4000 });
         }
-        return {
-          status: 'passed',
-          error: null,
-          healed: true,
-          healMethod: `Fuzzy DOM match (XPath: ${fuzzyMatch.xpath}, Score: ${fuzzyMatch.score})`,
-          resolvedSelector: fuzzyMatch.xpath
-        };
+        return await handleHealSuccess(pageUrl, selector, `xpath=${fuzzyMatch.xpath}`, `Fuzzy DOM match (XPath: ${fuzzyMatch.xpath}, Score: ${fuzzyMatch.score})`);
       }
     }
   } catch (err) {
@@ -468,13 +663,7 @@ export async function executeInteraction(page, action, selector, value = '', tim
           await page.keyboard.press('Backspace');
           await page.keyboard.insertText(value);
         }
-        return {
-          status: 'passed',
-          error: null,
-          healed: true,
-          healMethod: `Coordinate offset relative to targeted Label element`,
-          resolvedSelector: `Coordinates(${targetX.toFixed(0)}, ${targetY.toFixed(0)})`
-        };
+        return await handleHealSuccess(pageUrl, selector, `Coordinates(${targetX.toFixed(0)}, ${targetY.toFixed(0)})`, `Coordinate offset relative to targeted Label element`);
       }
     }
 
@@ -497,13 +686,7 @@ export async function executeInteraction(page, action, selector, value = '', tim
               await page.keyboard.press('Backspace');
               await page.keyboard.insertText(value);
             }
-            return {
-              status: 'passed',
-              error: null,
-              healed: true,
-              healMethod: `Coordinate offset relative to Label "${kw}"`,
-              resolvedSelector: `Coordinates(${targetX.toFixed(0)}, ${targetY.toFixed(0)})`
-            };
+            return await handleHealSuccess(pageUrl, selector, `Coordinates(${targetX.toFixed(0)}, ${targetY.toFixed(0)})`, `Coordinate offset relative to Label "${kw}"`);
           }
         }
       }
@@ -525,13 +708,7 @@ export async function executeInteraction(page, action, selector, value = '', tim
             await page.keyboard.press('Backspace');
             await page.keyboard.insertText(value);
           }
-          return {
-            status: 'passed',
-            error: null,
-            healed: true,
-            healMethod: `Coordinate center of parent element "${parentSelector}"`,
-            resolvedSelector: `Coordinates(${targetX.toFixed(0)}, ${targetY.toFixed(0)})`
-          };
+          return await handleHealSuccess(pageUrl, selector, `Coordinates(${targetX.toFixed(0)}, ${targetY.toFixed(0)})`, `Coordinate center of parent element "${parentSelector}"`);
         }
       }
     }
@@ -545,13 +722,7 @@ export async function executeInteraction(page, action, selector, value = '', tim
         await page.keyboard.press('Backspace');
         await page.keyboard.insertText(value);
       }
-      return {
-        status: 'passed',
-        error: null,
-        healed: true,
-        healMethod: `Direct coordinates of fuzzy element match`,
-        resolvedSelector: `Coordinates(${fuzzyMatch.centerX.toFixed(0)}, ${fuzzyMatch.centerY.toFixed(0)})`
-      };
+      return await handleHealSuccess(pageUrl, selector, `Coordinates(${fuzzyMatch.centerX.toFixed(0)}, ${fuzzyMatch.centerY.toFixed(0)})`, `Direct coordinates of fuzzy element match`);
     }
   } catch (err) {
     console.warn(`⚠️ Relative coordinate strategy failed: ${err.message}`);
@@ -889,5 +1060,150 @@ export async function detectAndCloseOverlays(page, selector = '') {
 
   return diagnostics;
 }
+
+/**
+ * Capture DOM snippet context on failure and call Ollama for AI-powered diagnostics.
+ * Gracefully degenerates if Ollama is offline or times out.
+ */
+export async function runFailureDiagnostics({ page, action, selector, value, errorMsg, model = 'qwen2.5-coder:7b', ollamaUrl = 'http://127.0.0.1:11434' }) {
+  try {
+    console.log(`[Diagnostics] Extracting DOM context for failed selector: "${selector}"`);
+    const domInfo = await page.evaluate((sel) => {
+      let el = null;
+      if (sel) {
+        try {
+          el = document.querySelector(sel);
+        } catch (_) {}
+      }
+      
+      let isFallback = false;
+      if (!el) {
+        el = document.activeElement;
+        isFallback = true;
+      }
+      if (!el || el === document.body) {
+        el = document.body;
+        isFallback = true;
+      }
+      
+      const cleanHtml = (node, cap) => {
+        if (!node) return '';
+        let html = node.outerHTML || '';
+        if (html.length > cap) {
+          html = html.substring(0, cap) + '\n... (truncated)';
+        }
+        return html;
+      };
+      
+      return {
+        elementHtml: isFallback ? '' : cleanHtml(el, 2048),
+        parentHtml: el && el.parentElement ? cleanHtml(el.parentElement, 5120) : '',
+        url: window.location.href,
+        title: document.title
+      };
+    }, selector);
+
+    let aiAnalysis = null;
+    try {
+      const prompt = `You are an expert AI test automation debugger. A browser test step has failed. Analyze the failure details and DOM snippet below to diagnose the issue and suggest a fix.
+
+FAILED STEP:
+Action: ${action}
+Selector: ${selector}
+Value: ${value}
+Error: ${errorMsg}
+
+PAGE CONTEXT:
+URL: ${domInfo.url}
+Title: ${domInfo.title}
+
+DOM SNIPPET (Target element HTML):
+${domInfo.elementHtml || 'Not found / fallback to page body'}
+
+PARENT CONTAINER DOM SNIPPET:
+${domInfo.parentHtml || 'N/A'}
+
+Respond ONLY with a valid JSON object matching this schema:
+{
+  "explanation": "A summary of the issue in 1-2 sentences.",
+  "rootCause": "A detailed analysis of why the step failed (e.g. element not found, input disabled, timing issue, selector mismatch).",
+  "remediation": [
+    "A list of concrete suggestions to resolve the failure.",
+    "e.g. Update selector to use data-testid='...' instead of dynamic class.",
+    "e.g. Add a wait step before this action to allow elements to load.",
+    "e.g. Ensure the user is logged in before accessing this page."
+  ]
+}
+Do NOT include markdown fences, backticks, or any explanations outside of the JSON object.`;
+
+      console.log(`[Diagnostics] Contacting Ollama at ${ollamaUrl} using model ${model} for AI analysis...`);
+      const response = await fetch(`${ollamaUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          prompt,
+          stream: false
+        }),
+        signal: AbortSignal.timeout(30000) // 30-second timeout for diagnostics
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const text = (data.response || '').trim();
+        
+        // Extract JSON object
+        const objStart = text.indexOf('{');
+        const objEnd = text.lastIndexOf('}');
+        if (objStart !== -1 && objEnd > objStart) {
+          try {
+            aiAnalysis = JSON.parse(text.substring(objStart, objEnd + 1));
+          } catch (pe) {
+            console.warn('[Diagnostics] Failed to parse AI diagnostics JSON:', pe);
+          }
+        }
+      } else {
+        console.warn(`[Diagnostics] Ollama returned status ${response.status}`);
+      }
+    } catch (ollamaErr) {
+      console.warn('[Diagnostics] Failed to connect to Ollama for failure diagnostics:', ollamaErr.message);
+    }
+
+    // Fallback if AI analysis is unavailable or returned invalid structure
+    if (!aiAnalysis || typeof aiAnalysis.explanation !== 'string') {
+      aiAnalysis = {
+        explanation: 'AI diagnostics could not be retrieved.',
+        rootCause: errorMsg || 'Unknown error during test step execution.',
+        remediation: [
+          'Verify if the element selector exists in the application DOM.',
+          'Check the screenshots to see if the element was covered or off-screen.',
+          'Ensure the target application was in the correct state.'
+        ]
+      };
+    }
+
+    return {
+      url: domInfo.url,
+      title: domInfo.title,
+      elementHtml: domInfo.elementHtml,
+      parentHtml: domInfo.parentHtml,
+      aiAnalysis
+    };
+  } catch (err) {
+    console.error('[Diagnostics] Failed to run diagnostics:', err);
+    return {
+      url: page.url(),
+      title: await page.title().catch(() => ''),
+      elementHtml: '',
+      parentHtml: '',
+      aiAnalysis: {
+        explanation: 'Failed to extract diagnostics from page.',
+        rootCause: errorMsg || err.message,
+        remediation: ['Inspect standard test logs and screenshots manually.']
+      }
+    };
+  }
+}
+
 
 
