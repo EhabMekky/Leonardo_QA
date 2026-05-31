@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test Report — Scripted Test (CSV)</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -444,6 +445,183 @@
       .content { margin-left: 0; padding: 20px; }
       .summary-cards { grid-template-columns: repeat(2, 1fr); }
     }
+
+    /* Report tabs styling */
+    .report-tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 12px;
+    }
+    .report-tab-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #475569;
+    }
+    .report-tab-btn:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+    .report-tab-btn.active {
+      border-color: #6366f1;
+      background: #eff6ff;
+      color: #4f46e5;
+    }
+    .tab-status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .tab-status-badge.passed {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .tab-status-badge.failed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Video Player */
+    .video-player-container {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .video-player-container h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #0f172a;
+    }
+
+    /* Diagnostics Card */
+    .diagnostics-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #f43f5e;
+      border-radius: 8px;
+      margin-top: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .diagnostics-header {
+      background: #fff5f5;
+      padding: 10px 16px;
+      border-bottom: 1px solid #fee2e2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #991b1b;
+      font-size: 14px;
+    }
+    .diagnostics-icon {
+      font-size: 16px;
+    }
+    .diagnostics-body {
+      padding: 16px;
+    }
+    .diag-section {
+      margin-bottom: 12px;
+    }
+    .diag-section:last-child {
+      margin-bottom: 0;
+    }
+    .diag-subtitle {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .diag-text {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #334155;
+    }
+    .remediation-list {
+      padding-left: 20px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #334155;
+    }
+    .remediation-list li {
+      margin-bottom: 4px;
+    }
+    .remediation-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    /* DOM Context Section */
+    .dom-context-section {
+      border-top: 1px solid #e2e8f0;
+    }
+    .dom-toggle-btn {
+      width: 100%;
+      background: #f8fafc;
+      border: none;
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.15s;
+    }
+    .dom-toggle-btn:hover {
+      background: #f1f5f9;
+    }
+    .dom-chevron {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .dom-context-body {
+      padding: 16px;
+      background: #1e293b;
+      color: #e2e8f0;
+      overflow-x: auto;
+    }
+    .code-header {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      margin-top: 10px;
+    }
+    .code-header:first-child {
+      margin-top: 0;
+    }
+    .dom-context-body pre {
+      margin: 0;
+      padding: 0;
+    }
+    .dom-context-body code {
+      background: none;
+      padding: 0;
+      color: #e2e8f0;
+      font-size: 12px;
+    }
   
   </style>
 </head>
@@ -466,7 +644,7 @@
       <a href="#environment" class="nav-item">⚙️ Environment</a>
     </nav>
     <div class="sidebar-footer">
-      <div class="run-id">Run: run-1779808273815</div>
+      <div class="run-id">Run: run-1780235153455</div>
     </div>
   </aside>
 
@@ -476,9 +654,10 @@
     <header class="report-header">
       <div class="header-left">
         <h1>Scripted Test (CSV)</h1>
-        <p class="timestamp">Tuesday, May 26, 2026 at 6:11:26 PM</p>
+        <p class="timestamp">Sunday, May 31, 2026 at 4:45:53 PM</p>
       </div>
-      <div class="header-right">
+      <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
+        
         <span class="overall-badge failed">✗ FAILED</span>
       </div>
     </header>
@@ -517,28 +696,43 @@
 
       <!-- Duration -->
       <div class="duration-bar">
-        <span>⏱️ Total Duration: <strong>5.35s</strong></span>
+        <span>⏱️ Total Duration: <strong>17.60s</strong></span>
       </div>
     </section>
 
     <!-- Test Steps Section -->
     <section id="steps" class="section">
       <h2>📋 Test Steps</h2>
-      <div class="steps-container">
+      
+    <div class="report-tabs">
+      
+          <button class="report-tab-btn active" onclick="showBrowserReport('edge')" data-browser="edge">
+            <span>EDGE</span>
+            <span class="tab-status-badge failed">❌ Failed</span>
+          </button>
         
-    <div class="step-item failed" data-step-index="0">
-      <div class="step-header" onclick="toggleStep(0)">
+    </div>
+  
+      
+    <div class="browser-report-contents">
+      
+          <div id="browser-steps-edge" class="browser-steps-content" style="display: block;">
+            
+            <div class="steps-container">
+              
+    <div class="step-item failed" data-step-index="edge-0">
+      <div class="step-header" onclick="toggleStep('edge-0')">
         <div class="step-left">
           <span class="step-status-icon failed">✗</span>
           <span class="step-number">#1</span>
           <span class="step-name">Navigate to https://bitheap.tech/</span>
         </div>
         <div class="step-right">
-          <span class="step-duration">4.65s</span>
-          <span class="step-chevron" id="chevron-0">▸</span>
+          <span class="step-duration">7.59s</span>
+          <span class="step-chevron" id="chevron-edge-0">▸</span>
         </div>
       </div>
-      <div class="step-details" id="step-details-0" style="display:none;">
+      <div class="step-details" id="step-details-edge-0" style="display:none;">
         <div class="step-meta">
           <div class="meta-row"><span class="meta-label">Action:</span> <code>navigate</code></div>
           
@@ -547,11 +741,38 @@
         
         <div class="step-error"><strong>Error:</strong> page.waitForTimeout: Target page, context or browser has been closed</div>
         
+      <div class="diagnostics-card" onclick="event.stopPropagation()">
+        <div class="diagnostics-header">
+          <span class="diagnostics-icon">🤖</span>
+          <strong>AI Debugger Insights</strong>
+        </div>
+        <div class="diagnostics-body">
+          <div class="diag-section">
+            <span class="diag-subtitle">Explanation:</span>
+            <p class="diag-text">Failed to extract diagnostics from page.</p>
+          </div>
+          <div class="diag-section">
+            <span class="diag-subtitle">Root Cause:</span>
+            <p class="diag-text">page.waitForTimeout: Target page, context or browser has been closed</p>
+          </div>
+          
+          <div class="diag-section">
+            <span class="diag-subtitle">Remediation Steps:</span>
+            <ul class="remediation-list">
+              <li>Inspect standard test logs and screenshots manually.</li>
+            </ul>
+          </div>
+        </div>
+        
+        
+      </div>
+    
+        
       </div>
     </div>
 
-    <div class="step-item failed" data-step-index="1">
-      <div class="step-header" onclick="toggleStep(1)">
+    <div class="step-item failed" data-step-index="edge-1">
+      <div class="step-header" onclick="toggleStep('edge-1')">
         <div class="step-left">
           <span class="step-status-icon failed">✗</span>
           <span class="step-number">#2</span>
@@ -559,10 +780,10 @@
         </div>
         <div class="step-right">
           <span class="step-duration">0.00s</span>
-          <span class="step-chevron" id="chevron-1">▸</span>
+          <span class="step-chevron" id="chevron-edge-1">▸</span>
         </div>
       </div>
-      <div class="step-details" id="step-details-1" style="display:none;">
+      <div class="step-details" id="step-details-edge-1" style="display:none;">
         <div class="step-meta">
           <div class="meta-row"><span class="meta-label">Action:</span> <code>system</code></div>
           
@@ -571,19 +792,35 @@
         
         <div class="step-error"><strong>Error:</strong> Initial navigation failed: page.waitForTimeout: Target page, context or browser has been closed</div>
         
+        
       </div>
     </div>
-      </div>
+            </div>
+          </div>
+        
+    </div>
+  
     </section>
 
     <!-- Console Errors Section -->
-    <section id="console-errors" class="section"><div class="console-errors">
-        <h3>🔴 Console Errors Captured (2)</h3>
-        <div class="error-list">
-          <div class="error-item"><span class="error-time">2026-05-26T15:11:28.470Z</span> <span class="error-msg">Failed to load resource: net::ERR_NAME_NOT_RESOLVED</span></div>
-<div class="error-item"><span class="error-time">2026-05-26T15:11:28.979Z</span> <span class="error-msg">The play() request was interrupted because the media was removed from the document. https://goo.gl/LdLk22</span></div>
-        </div>
-      </div></section>
+    
+    <section id="console-errors" class="section">
+      <h2>🔴 Console Errors</h2>
+      <div class="browser-errors-contents">
+        
+            <div id="browser-errors-edge" class="browser-errors-content" style="display: block;">
+              <div class="console-errors">
+                <h3>🔴 Console Errors Captured on EDGE (2)</h3>
+                <div class="error-list">
+                  <div class="error-item"><span class="error-time">2026-05-31T13:46:05.371Z</span> <span class="error-msg">Failed to load resource: net::ERR_NAME_NOT_RESOLVED</span></div>
+<div class="error-item"><span class="error-time">2026-05-31T13:46:06.087Z</span> <span class="error-msg">The play() request was interrupted because the media was removed from the document.</span></div>
+                </div>
+              </div>
+            </div>
+          
+      </div>
+    </section>
+    
 
     <!-- Environment Section -->
     <section id="environment" class="section">
@@ -591,19 +828,34 @@
       <table class="env-table">
         <tr><td>URL</td><td><a href="https://bitheap.tech/" target="_blank">https://bitheap.tech/</a></td></tr>
         <tr><td>Mode</td><td><span class="mode-badge scripted">📄 Scripted (CSV)</span></td></tr>
+        
         <tr><td>Ollama Model</td><td>qwen2.5-coder:7b</td></tr>
-        <tr><td>Duration</td><td>5.35s</td></tr>
+        <tr><td>Device Emulation</td><td>Desktop (1280x720)</td></tr>
+        <tr><td>Active Browsers</td><td><span class="mode-badge scripted" style="margin-right: 5px; text-transform: uppercase;">edge</span></td></tr>
+        <tr><td>Duration</td><td>17.60s</td></tr>
         <tr><td>Cookies</td><td>0 injected</td></tr>
-        <tr><td>Run ID</td><td><code>run-1779808273815</code></td></tr>
+        <tr><td>Run ID</td><td><code>run-1780235153455</code></td></tr>
       </table>
     </section>
   </main>
 
   <script>
     
-    function toggleStep(index) {
-      const details = document.getElementById('step-details-' + index);
-      const chevron = document.getElementById('chevron-' + index);
+    function toggleDomContext(id) {
+      const details = document.getElementById('dom-context-' + id);
+      const chevron = document.getElementById('dom-chevron-' + id);
+      if (details.style.display === 'none') {
+        details.style.display = 'block';
+        chevron.textContent = '▾';
+      } else {
+        details.style.display = 'none';
+        chevron.textContent = '▸';
+      }
+    }
+
+    function toggleStep(id) {
+      const details = document.getElementById('step-details-' + id);
+      const chevron = document.getElementById('chevron-' + id);
       if (details.style.display === 'none') {
         details.style.display = 'block';
         chevron.textContent = '▾';
@@ -612,6 +864,32 @@
         details.style.display = 'none';
         chevron.textContent = '▸';
       }
+    }
+
+    function showBrowserReport(browser) {
+      // Hide all step content areas
+      document.querySelectorAll('.browser-steps-content').forEach(el => {
+        el.style.display = 'none';
+      });
+      // Hide all error content areas
+      document.querySelectorAll('.browser-errors-content').forEach(el => {
+        el.style.display = 'none';
+      });
+
+      // Show selected content area
+      const stepsTarget = document.getElementById('browser-steps-' + browser);
+      if (stepsTarget) stepsTarget.style.display = 'block';
+      const errorsTarget = document.getElementById('browser-errors-' + browser);
+      if (errorsTarget) errorsTarget.style.display = 'block';
+
+      // Update active state on tab buttons
+      document.querySelectorAll('.report-tab-btn').forEach(btn => {
+        if (btn.dataset.browser === browser) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
     }
 
     // Expand all failed steps by default

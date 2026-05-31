@@ -31,9 +31,39 @@ export function generateReport(runId, testResults) {
   const reportPath = path.join(reportsDir, 'index.html');
   fs.writeFileSync(reportPath, html, 'utf-8');
 
+  // Compute status for metadata
+  let browsersData = testResults.browsers;
+  if (!browsersData) {
+    browsersData = {
+      chrome: {
+        steps: testResults.steps || [],
+      }
+    };
+  }
+  let failed = 0;
+  for (const b of Object.keys(browsersData)) {
+    const bData = browsersData[b];
+    const steps = bData.steps || [];
+    failed += steps.filter(s => s.status === 'failed').length;
+  }
+  const overallStatus = failed > 0 ? 'failed' : 'passed';
+
+  const metaPath = path.join(reportsDir, 'meta.json');
+  try {
+    fs.writeFileSync(metaPath, JSON.stringify({
+      id: runId,
+      url: testResults.url || '',
+      status: overallStatus,
+      createdAt: testResults.startTime || new Date().toISOString()
+    }, null, 2), 'utf-8');
+  } catch (err) {
+    console.error(`Failed to write meta.json for report ${runId}:`, err);
+  }
+
   console.log(`📄 Report generated: ${reportPath}`);
   return reportPath;
 }
+
 
 /**
  * Build the complete HTML string for the report

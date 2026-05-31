@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Report — AI Exploratory Test</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f8f9fb;
+      color: #1e293b;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background: #1e293b;
+      color: #94a3b8;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 10;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #f1f5f9;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 0;
+    }
+
+    .nav-item {
+      display: block;
+      padding: 10px 20px;
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      color: #f1f5f9;
+      background: #334155;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #334155;
+    }
+
+    .run-id {
+      font-size: 11px;
+      color: #64748b;
+      word-break: break-all;
+    }
+
+    /* Main Content */
+    .content {
+      flex: 1;
+      margin-left: 240px;
+      padding: 32px 40px;
+      max-width: 1100px;
+    }
+
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+    }
+
+    .report-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .timestamp {
+      color: #64748b;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .overall-badge {
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    .overall-badge.passed {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .overall-badge.failed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Section */
+    .section {
+      margin-bottom: 36px;
+    }
+
+    .section h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #0f172a;
+    }
+
+    /* Summary Cards */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border-top: 4px solid transparent;
+    }
+
+    .card-total { border-top-color: #6366f1; }
+    .card-passed { border-top-color: #22c55e; }
+    .card-failed { border-top-color: #ef4444; }
+    .card-skipped { border-top-color: #f59e0b; }
+
+    .card-value {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .card-total .card-value { color: #6366f1; }
+    .card-passed .card-value { color: #22c55e; }
+    .card-failed .card-value { color: #ef4444; }
+    .card-skipped .card-value { color: #f59e0b; }
+
+    .card-label {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    /* Pass Rate */
+    .pass-rate-container {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .pass-rate-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .pass-rate-value { font-weight: 700; color: #0f172a; }
+
+    .progress-bar {
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.6s ease;
+    }
+
+    .progress-fill.passed { background: linear-gradient(90deg, #22c55e, #16a34a); }
+    .progress-fill.failed { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+    .duration-bar {
+      background: #fff;
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 14px;
+      color: #475569;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    /* Steps */
+    .steps-container {
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .step-item {
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .step-item:last-child { border-bottom: none; }
+
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .step-header:hover { background: #f8fafc; }
+
+    .step-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-status-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-status-icon.passed { background: #dcfce7; color: #166534; }
+    .step-status-icon.failed { background: #fee2e2; color: #991b1b; }
+    .step-status-icon.skipped { background: #fef3c7; color: #92400e; }
+
+    .step-number {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+      min-width: 30px;
+    }
+
+    .step-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1e293b;
+    }
+
+    .step-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .step-duration {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .step-chevron {
+      font-size: 14px;
+      color: #94a3b8;
+      transition: transform 0.2s;
+    }
+
+    .step-details {
+      padding: 0 20px 16px 64px;
+      animation: slideDown 0.2s ease;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-meta {
+      background: #f8fafc;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+    }
+
+    .meta-row {
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: #475569;
+    }
+
+    .meta-row:last-child { margin-bottom: 0; }
+
+    .meta-label {
+      font-weight: 600;
+      color: #334155;
+    }
+
+    code {
+      background: #e2e8f0;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-family: 'Menlo', 'Consolas', monospace;
+    }
+
+    .step-error {
+      background: #fef2f2;
+      border-left: 3px solid #ef4444;
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #991b1b;
+      margin-bottom: 10px;
+    }
+
+    .step-reason {
+      background: #eff6ff;
+      border-left: 3px solid #3b82f6;
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #1e40af;
+      margin-bottom: 10px;
+    }
+
+    .step-screenshot img {
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      transition: transform 0.3s;
+      max-height: 300px;
+      object-fit: contain;
+    }
+
+    .step-screenshot img.expanded {
+      max-height: none;
+      transform: scale(1.02);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+
+    /* Console Errors */
+    .console-errors h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+
+    .error-list {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .error-item {
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      color: #fca5a5;
+      margin-bottom: 6px;
+      padding: 4px 0;
+      border-bottom: 1px solid #334155;
+    }
+
+    .error-time { color: #64748b; margin-right: 8px; }
+
+    /* Environment Table */
+    .env-table {
+      background: #fff;
+      border-radius: 10px;
+      width: 100%;
+      border-collapse: collapse;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+
+    .env-table tr { border-bottom: 1px solid #f1f5f9; }
+    .env-table tr:last-child { border-bottom: none; }
+
+    .env-table td {
+      padding: 12px 20px;
+      font-size: 14px;
+    }
+
+    .env-table td:first-child {
+      font-weight: 600;
+      color: #475569;
+      width: 160px;
+    }
+
+    .env-table a { color: #6366f1; text-decoration: none; }
+    .env-table a:hover { text-decoration: underline; }
+
+    .mode-badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .mode-badge.exploratory { background: #ede9fe; color: #5b21b6; }
+    .mode-badge.scripted { background: #dbeafe; color: #1e40af; }
+
+    .no-steps {
+      text-align: center;
+      padding: 40px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .content { margin-left: 0; padding: 20px; }
+      .summary-cards { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Report tabs styling */
+    .report-tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 12px;
+    }
+    .report-tab-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #475569;
+    }
+    .report-tab-btn:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+    .report-tab-btn.active {
+      border-color: #6366f1;
+      background: #eff6ff;
+      color: #4f46e5;
+    }
+    .tab-status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .tab-status-badge.passed {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .tab-status-badge.failed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Video Player */
+    .video-player-container {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .video-player-container h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #0f172a;
+    }
+
+    /* Diagnostics Card */
+    .diagnostics-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #f43f5e;
+      border-radius: 8px;
+      margin-top: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .diagnostics-header {
+      background: #fff5f5;
+      padding: 10px 16px;
+      border-bottom: 1px solid #fee2e2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #991b1b;
+      font-size: 14px;
+    }
+    .diagnostics-icon {
+      font-size: 16px;
+    }
+    .diagnostics-body {
+      padding: 16px;
+    }
+    .diag-section {
+      margin-bottom: 12px;
+    }
+    .diag-section:last-child {
+      margin-bottom: 0;
+    }
+    .diag-subtitle {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .diag-text {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #334155;
+    }
+    .remediation-list {
+      padding-left: 20px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #334155;
+    }
+    .remediation-list li {
+      margin-bottom: 4px;
+    }
+    .remediation-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    /* DOM Context Section */
+    .dom-context-section {
+      border-top: 1px solid #e2e8f0;
+    }
+    .dom-toggle-btn {
+      width: 100%;
+      background: #f8fafc;
+      border: none;
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.15s;
+    }
+    .dom-toggle-btn:hover {
+      background: #f1f5f9;
+    }
+    .dom-chevron {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .dom-context-body {
+      padding: 16px;
+      background: #1e293b;
+      color: #e2e8f0;
+      overflow-x: auto;
+    }
+    .code-header {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      margin-top: 10px;
+    }
+    .code-header:first-child {
+      margin-top: 0;
+    }
+    .dom-context-body pre {
+      margin: 0;
+      padding: 0;
+    }
+    .dom-context-body code {
+      background: none;
+      padding: 0;
+      color: #e2e8f0;
+      font-size: 12px;
+    }
+  
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        <span>QA Report</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#overview" class="nav-item active">📊 Overview</a>
+      <a href="#steps" class="nav-item">📋 Test Steps</a>
+      <a href="#console-errors" class="nav-item">🔴 Console Errors</a>
+      <a href="#environment" class="nav-item">⚙️ Environment</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="run-id">Run: run-1780234851120</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="content">
+    <!-- Header -->
+    <header class="report-header">
+      <div class="header-left">
+        <h1>AI Exploratory Test</h1>
+        <p class="timestamp">Sunday, May 31, 2026 at 4:40:51 PM</p>
+      </div>
+      <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
+        
+        <span class="overall-badge failed">✗ FAILED</span>
+      </div>
+    </header>
+
+    <!-- Overview Section -->
+    <section id="overview" class="section">
+      <div class="summary-cards">
+        <div class="card card-total">
+          <div class="card-value">2</div>
+          <div class="card-label">Total Steps</div>
+        </div>
+        <div class="card card-passed">
+          <div class="card-value">1</div>
+          <div class="card-label">Passed</div>
+        </div>
+        <div class="card card-failed">
+          <div class="card-value">1</div>
+          <div class="card-label">Failed</div>
+        </div>
+        <div class="card card-skipped">
+          <div class="card-value">0</div>
+          <div class="card-label">Skipped</div>
+        </div>
+      </div>
+
+      <!-- Pass Rate Bar -->
+      <div class="pass-rate-container">
+        <div class="pass-rate-header">
+          <span>Pass Rate</span>
+          <span class="pass-rate-value">50.0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill failed" style="width: 50.0%"></div>
+        </div>
+      </div>
+
+      <!-- Duration -->
+      <div class="duration-bar">
+        <span>⏱️ Total Duration: <strong>5.51s</strong></span>
+      </div>
+    </section>
+
+    <!-- Test Steps Section -->
+    <section id="steps" class="section">
+      <h2>📋 Test Steps</h2>
+      
+    <div class="report-tabs">
+      
+          <button class="report-tab-btn active" onclick="showBrowserReport('chrome')" data-browser="chrome">
+            <span>CHROME</span>
+            <span class="tab-status-badge failed">❌ Failed</span>
+          </button>
+        
+    </div>
+  
+      
+    <div class="browser-report-contents">
+      
+          <div id="browser-steps-chrome" class="browser-steps-content" style="display: block;">
+            <div class="video-player-container">
+              <h3>🎥 Browser Execution Recording (CHROME)</h3>
+              <video controls width="100%" preload="metadata" style="max-width: 800px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <source src="/reports/run-1780234851120/video-chrome.webm" type="video/webm">
+                Your browser does not support the video tag.
+              </video>
+             </div>
+            <div class="steps-container">
+              
+    <div class="step-item passed" data-step-index="chrome-0">
+      <div class="step-header" onclick="toggleStep('chrome-0')">
+        <div class="step-left">
+          <span class="step-status-icon passed">✓</span>
+          <span class="step-number">#1</span>
+          <span class="step-name">Navigate to https://authenticationtest.com/simpleForm/</span>
+        </div>
+        <div class="step-right">
+          <span class="step-duration">1.22s</span>
+          <span class="step-chevron" id="chevron-chrome-0">▸</span>
+        </div>
+      </div>
+      <div class="step-details" id="step-details-chrome-0" style="display:none;">
+        <div class="step-meta">
+          <div class="meta-row"><span class="meta-label">Action:</span> <code>navigate</code></div>
+          
+          <div class="meta-row"><span class="meta-label">Value:</span> <code>https://authenticationtest.com/simpleForm/</code></div>
+        </div>
+        <div class="step-reason"><strong>AI Reason:</strong> Initial navigation to target URL</div>
+        
+        
+        <div class="step-screenshot">
+        <img src="data:image/png;base64,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QhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhggAQAgAgEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEASgXJXGAAABXUlEQVQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBAEMAAAACEIYAAAAEIQwAAAAIQggAEAAAhBAAMAABCCAAYAACAEAQwAAEAIAhgAAIAQBDAAAAAhCGAAAABCEMAAAACEIIABAAAIQQADAAAQggAGAAAgBAEMAABACAIYAACAEAQwAAAAIQhgAAAAQhDAAAAAhCCAAQAACEEAAwAAEIIABgAAIAQBDAAAQAgCGAAAgBD+PwAAAP//VMaFSgAAAAZJREFUAwABe0akIeIEyAAAAABJRU5ErkJggg==" alt="Screenshot for Navigate to https://authenticationtest.com/simpleForm/" loading="lazy" onclick="this.classList.toggle('expanded')"/>
+      </div>
+      </div>
+    </div>
+
+    <div class="step-item failed" data-step-index="chrome-1">
+      <div class="step-header" onclick="toggleStep('chrome-1')">
+        <div class="step-left">
+          <span class="step-status-icon failed">✗</span>
+          <span class="step-number">#2</span>
+          <span class="step-name">[R1] screenshot</span>
+        </div>
+        <div class="step-right">
+          <span class="step-duration">0.00s</span>
+          <span class="step-chevron" id="chevron-chrome-1">▸</span>
+        </div>
+      </div>
+      <div class="step-details" id="step-details-chrome-1" style="display:none;">
+        <div class="step-meta">
+          <div class="meta-row"><span class="meta-label">Action:</span> <code>screenshot</code></div>
+          
+          
+        </div>
+        <div class="step-reason"><strong>AI Reason:</strong> Capture initial state (Failed after 1 attempts)</div>
+        <div class="step-error"><strong>Error:</strong> page.waitForTimeout: Target page, context or browser has been closed</div>
+        
+      <div class="diagnostics-card" onclick="event.stopPropagation()">
+        <div class="diagnostics-header">
+          <span class="diagnostics-icon">🤖</span>
+          <strong>AI Debugger Insights</strong>
+        </div>
+        <div class="diagnostics-body">
+          <div class="diag-section">
+            <span class="diag-subtitle">Explanation:</span>
+            <p class="diag-text">Failed to extract diagnostics from page.</p>
+          </div>
+          <div class="diag-section">
+            <span class="diag-subtitle">Root Cause:</span>
+            <p class="diag-text">page.waitForTimeout: Target page, context or browser has been closed</p>
+          </div>
+          
+          <div class="diag-section">
+            <span class="diag-subtitle">Remediation Steps:</span>
+            <ul class="remediation-list">
+              <li>Inspect standard test logs and screenshots manually.</li>
+            </ul>
+          </div>
+        </div>
+        
+        
+      </div>
+    
+        
+      </div>
+    </div>
+            </div>
+          </div>
+        
+    </div>
+  
+    </section>
+
+    <!-- Console Errors Section -->
+    
+    <section id="console-errors" class="section">
+      <h2>🔴 Console Errors</h2>
+      <div class="browser-errors-contents">
+        
+            <div id="browser-errors-chrome" class="browser-errors-content" style="display: block;">
+              <div class="console-errors">
+                <h3>🔴 Console Errors Captured on CHROME (2)</h3>
+                <div class="error-list">
+                  <div class="error-item"><span class="error-time">2026-05-31T13:40:51.754Z</span> <span class="error-msg">Failed to load resource: the server responded with a status of 404 ()</span></div>
+<div class="error-item"><span class="error-time">2026-05-31T13:40:52.386Z</span> <span class="error-msg">Failed to load resource: the server responded with a status of 404 ()</span></div>
+                </div>
+              </div>
+            </div>
+          
+      </div>
+    </section>
+    
+
+    <!-- Environment Section -->
+    <section id="environment" class="section">
+      <h2>⚙️ Environment</h2>
+      <table class="env-table">
+        <tr><td>URL</td><td><a href="https://authenticationtest.com/simpleForm/" target="_blank">https://authenticationtest.com/simpleForm/</a></td></tr>
+        <tr><td>Mode</td><td><span class="mode-badge exploratory">🤖 AI Bug Hunter</span></td></tr>
+        
+        <tr><td>Ollama Model</td><td>qwen2.5-coder:7b</td></tr>
+        <tr><td>Device Emulation</td><td>Desktop (1280x720)</td></tr>
+        <tr><td>Active Browsers</td><td><span class="mode-badge scripted" style="margin-right: 5px; text-transform: uppercase;">chrome</span></td></tr>
+        <tr><td>Duration</td><td>5.51s</td></tr>
+        <tr><td>Cookies</td><td>0 injected</td></tr>
+        <tr><td>Run ID</td><td><code>run-1780234851120</code></td></tr>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    
+    function toggleDomContext(id) {
+      const details = document.getElementById('dom-context-' + id);
+      const chevron = document.getElementById('dom-chevron-' + id);
+      if (details.style.display === 'none') {
+        details.style.display = 'block';
+        chevron.textContent = '▾';
+      } else {
+        details.style.display = 'none';
+        chevron.textContent = '▸';
+      }
+    }
+
+    function toggleStep(id) {
+      const details = document.getElementById('step-details-' + id);
+      const chevron = document.getElementById('chevron-' + id);
+      if (details.style.display === 'none') {
+        details.style.display = 'block';
+        chevron.textContent = '▾';
+        chevron.style.transform = 'rotate(0deg)';
+      } else {
+        details.style.display = 'none';
+        chevron.textContent = '▸';
+      }
+    }
+
+    function showBrowserReport(browser) {
+      // Hide all step content areas
+      document.querySelectorAll('.browser-steps-content').forEach(el => {
+        el.style.display = 'none';
+      });
+      // Hide all error content areas
+      document.querySelectorAll('.browser-errors-content').forEach(el => {
+        el.style.display = 'none';
+      });
+
+      // Show selected content area
+      const stepsTarget = document.getElementById('browser-steps-' + browser);
+      if (stepsTarget) stepsTarget.style.display = 'block';
+      const errorsTarget = document.getElementById('browser-errors-' + browser);
+      if (errorsTarget) errorsTarget.style.display = 'block';
+
+      // Update active state on tab buttons
+      document.querySelectorAll('.report-tab-btn').forEach(btn => {
+        if (btn.dataset.browser === browser) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    // Expand all failed steps by default
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.step-item.failed').forEach(item => {
+        const index = item.dataset.stepIndex;
+        const details = document.getElementById('step-details-' + index);
+        const chevron = document.getElementById('chevron-' + index);
+        if (details) {
+          details.style.display = 'block';
+          chevron.textContent = '▾';
+        }
+      });
+
+      // Smooth scroll for nav items
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+          e.target.classList.add('active');
+        });
+      });
+    });
+  
+  </script>
+</body>
+</html>

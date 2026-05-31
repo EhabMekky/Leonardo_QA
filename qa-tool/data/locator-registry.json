@@ -7,7 +7,7 @@
     ],
     "lastHealed": "2026-05-28T16:18:52.115Z",
     "healCount": 2,
-    "successRuns": 15,
+    "successRuns": 20,
     "healed": "Coordinates(406, 335)"
   },
   "/test-self-healing.html:.user-email": {
@@ -18,7 +18,7 @@
     "healed": "xpath=//*[@id=\"user-email-address\"]",
     "lastHealed": "2026-05-28T15:51:15.834Z",
     "healCount": 1,
-    "successRuns": 16
+    "successRuns": 21
   },
   "/test-self-healing.html:#coord-label": {
     "original": "#coord-label",
@@ -28,7 +28,7 @@
     "healed": "Coordinates(394, 448)",
     "lastHealed": "2026-05-28T15:51:19.323Z",
     "healCount": 1,
-    "successRuns": 16
+    "successRuns": 21
   },
   "/:.login-trigger": {
     "original": ".login-trigger",
@@ -38,15 +38,15 @@
     "healed": "xpath=//*[@id=\"menu-item-2330\"]/a[1]",
     "lastHealed": "2026-05-28T16:03:17.084Z",
     "healCount": 1,
-    "successRuns": 4
+    "successRuns": 5
   },
   "/:input[name=\"username\"]": {
     "original": "input[name=\"username\"]",
     "alternatives": [
       "xpath=body/div[8]/div[2]/div[1]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/form[1]/div[1]/div[1]/div[1]/input[1]"
     ],
-    "lastHealed": "2026-05-28T16:13:13.005Z",
-    "healCount": 2,
+    "lastHealed": "2026-05-31T13:43:00.765Z",
+    "healCount": 3,
     "healed": "xpath=body/div[8]/div[2]/div[1]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/form[1]/div[1]/div[1]/div[1]/input[1]"
   },
   "/:input[name=\"password\"]": {
@@ -54,8 +54,8 @@
     "alternatives": [
       "xpath=body/div[8]/div[2]/div[1]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/form[1]/div[1]/div[2]/div[1]/input[1]"
     ],
-    "lastHealed": "2026-05-28T18:16:30.284Z",
-    "healCount": 5,
+    "lastHealed": "2026-05-31T13:43:16.080Z",
+    "healCount": 6,
     "healed": "xpath=body/div[8]/div[2]/div[1]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/form[1]/div[1]/div[2]/div[1]/input[1]"
   },
   "/:.nav-shop": {
@@ -65,7 +65,8 @@
     ],
     "healed": "xpath=//*[@id=\"menu-item-1310\"]/a[1]",
     "lastHealed": "2026-05-28T16:14:36.555Z",
-    "healCount": 1
+    "healCount": 1,
+    "successRuns": 1
   },
   "/shop/:.add-to-cart-btn": {
     "original": ".add-to-cart-btn",
@@ -75,7 +76,7 @@
     "healed": "xpath=//*[@id=\"main\"]/ul[1]/li[1]/a[2]",
     "lastHealed": "2026-05-28T16:15:13.157Z",
     "healCount": 1,
-    "successRuns": 3
+    "successRuns": 4
   },
   "/:button.btn[type='submit']": {
     "original": "button.btn[type='submit']",
@@ -230,6 +231,15 @@
     "healed": "xpath=//*[@id=\"login\"]/button[1]",
     "lastHealed": "2026-05-29T00:27:31.954Z",
     "healCount": 1,
-    "successRuns": 6
+    "successRuns": 13
+  },
+  "/login:#login-btn": {
+    "original": "#login-btn",
+    "alternatives": [
+      "xpath=//*[@id=\"login\"]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"login\"]/button[1]",
+    "lastHealed": "2026-05-29T15:34:41.775Z",
+    "healCount": 1
   }
 }

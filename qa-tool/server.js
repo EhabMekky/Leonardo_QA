@@ -128,11 +128,24 @@ app.get('/api/reports', (req, res) => {
         if (exists) {
           stat = fs.statSync(reportPath);
         }
+
+        const metaPath = path.join(reportsDir, e.name, 'meta.json');
+        let meta = {};
+        if (fs.existsSync(metaPath)) {
+          try {
+            meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+          } catch (err) {
+            console.error(`Error reading metadata for run ${e.name}:`, err);
+          }
+        }
+
         return {
           id: e.name,
           exists,
-          createdAt: stat?.birthtime?.toISOString() || null,
-          url: `/report/${e.name}`
+          createdAt: meta.createdAt || stat?.birthtime?.toISOString() || null,
+          url: `/report/${e.name}`,
+          targetUrl: meta.url || '',
+          status: meta.status || 'unknown'
         };
       })
       .filter(r => r.exists)
