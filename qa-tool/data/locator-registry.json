@@ -241,5 +241,196 @@
     "healed": "xpath=//*[@id=\"login\"]/button[1]",
     "lastHealed": "2026-05-29T15:34:41.775Z",
     "healCount": 1
+  },
+  "/login:.login-button": {
+    "original": ".login-button",
+    "alternatives": [
+      "xpath=//*[@id=\"login\"]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"login\"]/button[1]",
+    "lastHealed": "2026-06-03T08:54:22.179Z",
+    "healCount": 1
+  },
+  "/:.nav-mobilfunk.tarife-mit-vertrag": {
+    "original": ".nav-mobilfunk.tarife-mit-vertrag",
+    "alternatives": [
+      "xpath=//a[contains(text(), 'vertrag')]"
+    ],
+    "healed": "xpath=//a[contains(text(), 'vertrag')]",
+    "lastHealed": "2026-06-03T09:04:34.279Z",
+    "healCount": 1
+  },
+  "/privat/handys-tablets-tarife/handyvertrag-ohne-handy.html:.tarif-gigamobil-xs-7gb": {
+    "original": ".tarif-gigamobil-xs-7gb",
+    "alternatives": [
+      "xpath=//*[@id=\"gigadepot-icon-text-link\"]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"gigadepot-icon-text-link\"]/a[1]",
+    "lastHealed": "2026-06-03T09:04:45.947Z",
+    "healCount": 1
+  },
+  "/privat/handys-tablets-tarife/handyvertrag-ohne-handy.html:.weiter-mit-diesem-anbieter": {
+    "original": ".weiter-mit-diesem-anbieter",
+    "alternatives": [
+      "text=\"weiter\""
+    ],
+    "healed": "text=\"weiter\"",
+    "lastHealed": "2026-06-03T09:05:26.714Z",
+    "healCount": 1
+  },
+  "/privat/handys-tablets-tarife/mobilfunk-tarife-extras.html:.zum-warenkorb": {
+    "original": ".zum-warenkorb",
+    "alternatives": [
+      "xpath=//*[@id=\"mc-header\"]/nav[1]/div[2]/div[1]/ul[1]/li[2]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"mc-header\"]/nav[1]/div[2]/div[1]/ul[1]/li[2]/a[1]",
+    "lastHealed": "2026-06-03T09:05:44.890Z",
+    "healCount": 1,
+    "successRuns": 1
+  },
+  "/shop/warenkorb.html:.alle-infos": {
+    "original": ".alle-infos",
+    "alternatives": [
+      "xpath=//*[@id=\"mc-footer\"]/nav[2]/div[2]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"mc-footer\"]/nav[2]/div[2]/a[1]",
+    "lastHealed": "2026-06-03T09:05:57.046Z",
+    "healCount": 1,
+    "successRuns": 1
+  },
+  "/:.navigation-mobilfunk": {
+    "original": ".navigation-mobilfunk",
+    "alternatives": [
+      "xpath=//*[@id=\"mc-nav-list-1\"]/li[1]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"mc-nav-list-1\"]/li[1]/a[1]",
+    "lastHealed": "2026-06-03T09:08:58.325Z",
+    "healCount": 1
+  },
+  "/privat/mobilfunk.html:.gigamobil-tarife": {
+    "original": ".gigamobil-tarife",
+    "alternatives": [
+      "xpath=//*[@id=\"angebote\"]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/div[1]/div[1]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"angebote\"]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/div[1]/div[1]/a[1]",
+    "lastHealed": "2026-06-03T09:09:16.284Z",
+    "healCount": 1
+  },
+  "/privat/handys-tablets-tarife/esim-tarife.html:.tariff-option-gigamobil-xs-mit-7gb": {
+    "original": ".tariff-option-gigamobil-xs-mit-7gb",
+    "alternatives": [
+      "xpath=//*[@id=\"contact-flyout__trigger\"]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"contact-flyout__trigger\"]/button[1]",
+    "lastHealed": "2026-06-03T09:09:28.624Z",
+    "healCount": 1
+  },
+  "/:.gigamobil-tarife": {
+    "original": ".gigamobil-tarife",
+    "alternatives": [
+      "xpath=//*[@id=\"list-cards\"]/div[1]/div[1]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"list-cards\"]/div[1]/div[1]/a[1]",
+    "lastHealed": "2026-06-03T09:17:51.075Z",
+    "healCount": 1
+  },
+  "/privat/handys-tablets-tarife/alle-tarife-mit-vertrag.html:.weiter-mit-diesem-anbieter": {
+    "original": ".weiter-mit-diesem-anbieter",
+    "alternatives": [
+      "text=\"weiter\""
+    ],
+    "healed": "text=\"weiter\"",
+    "lastHealed": "2026-06-03T09:18:32.586Z",
+    "healCount": 1
+  },
+  "/retoure-react/landingPage:.faq-accordion-item:not(.is-active)": {
+    "original": ".faq-accordion-item:not(.is-active)",
+    "alternatives": [
+      "xpath=//*[@id=\"root\"]/section[4]/div[1]/h3[1]"
+    ],
+    "healed": "xpath=//*[@id=\"root\"]/section[4]/div[1]/h3[1]",
+    "lastHealed": "2026-06-03T09:26:18.262Z",
+    "healCount": 1
+  },
+  "/retoure-react/landingPage:.faq-accordion-item": {
+    "original": ".faq-accordion-item",
+    "alternatives": [
+      "xpath=//*[@id=\"root\"]/section[4]/div[1]/h3[1]"
+    ],
+    "healed": "xpath=//*[@id=\"root\"]/section[4]/div[1]/h3[1]",
+    "lastHealed": "2026-06-03T09:29:43.038Z",
+    "healCount": 1
+  },
+  "/retoure-react/landingPage:button:has-text(\"Du willst Dein Gerät zurückschicken?\")": {
+    "original": "button:has-text(\"Du willst Dein Gerät zurückschicken?\")",
+    "alternatives": [
+      "xpath=//*[@id=\"root\"]/section[4]/div[1]/div[1]/details[1]/summary[1]"
+    ],
+    "healed": "xpath=//*[@id=\"root\"]/section[4]/div[1]/div[1]/details[1]/summary[1]",
+    "lastHealed": "2026-06-03T09:33:11.043Z",
+    "healCount": 1
+  },
+  "/retoure-react/landingPage:button:has-text(\"Dein Gerät ist defekt?\")": {
+    "original": "button:has-text(\"Dein Gerät ist defekt?\")",
+    "alternatives": [
+      "xpath=//*[@id=\"root\"]/section[4]/div[1]/div[1]/details[2]/summary[1]"
+    ],
+    "healed": "xpath=//*[@id=\"root\"]/section[4]/div[1]/div[1]/details[2]/summary[1]",
+    "lastHealed": "2026-06-03T09:33:23.162Z",
+    "healCount": 1
+  },
+  "/retoure-react/landingPage:button:has-text(\"Du willst Deine Rufnummer mitnehmen?\")": {
+    "original": "button:has-text(\"Du willst Deine Rufnummer mitnehmen?\")",
+    "alternatives": [
+      "xpath=//*[@id=\"root\"]/section[4]/div[1]/div[1]/details[3]/summary[1]"
+    ],
+    "healed": "xpath=//*[@id=\"root\"]/section[4]/div[1]/div[1]/details[3]/summary[1]",
+    "lastHealed": "2026-06-03T09:33:35.301Z",
+    "healCount": 1
+  },
+  "/retoure-react/landingPage:button:has-text(\"Du bist Geschäfts- oder Gewerbekund:in?\")": {
+    "original": "button:has-text(\"Du bist Geschäfts- oder Gewerbekund:in?\")",
+    "alternatives": [
+      "xpath=//*[@id=\"root\"]/section[4]/div[1]/div[1]/details[4]/summary[1]"
+    ],
+    "healed": "xpath=//*[@id=\"root\"]/section[4]/div[1]/div[1]/details[4]/summary[1]",
+    "lastHealed": "2026-06-03T09:33:47.387Z",
+    "healCount": 1
+  },
+  "/:button:has-text(\"Mobilfunk\")": {
+    "original": "button:has-text(\"Mobilfunk\")",
+    "alternatives": [
+      "xpath=//*[@id=\"mc-nav-list-1\"]/li[1]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"mc-nav-list-1\"]/li[1]/a[1]",
+    "lastHealed": "2026-06-03T09:50:44.655Z",
+    "healCount": 1
+  },
+  "/privat/mobilfunk.html:button:has-text(\"Tarife mit Vertrag\")": {
+    "original": "button:has-text(\"Tarife mit Vertrag\")",
+    "alternatives": [
+      "xpath=//*[@id=\"pathfinder-level-1\"]/ul[1]/li[1]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"pathfinder-level-1\"]/ul[1]/li[1]/a[1]",
+    "lastHealed": "2026-06-03T09:51:02.432Z",
+    "healCount": 1
+  },
+  "/privat/mobilfunk.html:button:has-text(\"GigaMobil-Tarife\")": {
+    "original": "button:has-text(\"GigaMobil-Tarife\")",
+    "alternatives": [
+      "xpath=//*[@id=\"related-links\"]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/ul[1]/li[1]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"related-links\"]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/ul[1]/li[1]/a[1]",
+    "lastHealed": "2026-06-03T09:51:14.472Z",
+    "healCount": 1
+  },
+  "/privat/handys-tablets-tarife/esim-tarife.html:button:has-text(\"25 GB statt 7 GB\")": {
+    "original": "button:has-text(\"25 GB statt 7 GB\")",
+    "alternatives": [
+      "xpath=//*[@id=\"mc-nav-list-a45b7a2a-0130-4ffa-b115-1d606d71a8cb\"]/li[1]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"mc-nav-list-a45b7a2a-0130-4ffa-b115-1d606d71a8cb\"]/li[1]/a[1]",
+    "lastHealed": "2026-06-03T09:51:26.743Z",
+    "healCount": 1
   }
 }
