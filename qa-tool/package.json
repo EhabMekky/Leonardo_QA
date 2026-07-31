@@ -18,6 +18,7 @@
   "author": "Ehab Mohamed",
   "license": "MIT",
   "dependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "csv-parse": "^5.6.0",
     "docx": "^9.7.1",
     "express": "^4.21.0",

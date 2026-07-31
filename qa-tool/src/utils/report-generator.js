@@ -37,16 +37,23 @@ export function generateReport(runId, testResults) {
     browsersData = {
       chrome: {
         steps: testResults.steps || [],
+        violations: testResults.violations || []
       }
     };
   }
+  const isA11y = testResults.mode === 'accessibility';
   let failed = 0;
+  let violationsCount = 0;
   for (const b of Object.keys(browsersData)) {
     const bData = browsersData[b];
-    const steps = bData.steps || [];
-    failed += steps.filter(s => s.status === 'failed').length;
+    if (isA11y) {
+      violationsCount += (bData.violations || []).reduce((acc, v) => acc + v.nodes.length, 0);
+    } else {
+      const steps = bData.steps || [];
+      failed += steps.filter(s => s.status === 'failed').length;
+    }
   }
-  const overallStatus = failed > 0 ? 'failed' : 'passed';
+  const overallStatus = isA11y ? (violationsCount > 0 ? 'failed' : 'passed') : (failed > 0 ? 'failed' : 'passed');
 
   const metaPath = path.join(reportsDir, 'meta.json');
   try {
@@ -91,26 +98,60 @@ function buildReportHTML(runId, results) {
     };
   }
 
+  const isA11y = mode === 'accessibility';
+  const isSuite = mode === 'suite';
+
   // Aggregate overall metrics across all active browsers
   let totalSteps = 0;
   let passed = 0;
   let failed = 0;
   let skipped = 0;
 
+  // Accessibility violation aggregates
+  let totalViolations = 0;
+  let criticalCount = 0;
+  let seriousCount = 0;
+  let moderateCount = 0;
+  let minorCount = 0;
+
   for (const b of Object.keys(browsersData)) {
     const bData = browsersData[b];
-    const steps = bData.steps || [];
-    totalSteps += steps.length;
-    passed += steps.filter(s => s.status === 'passed').length;
-    failed += steps.filter(s => s.status === 'failed').length;
-    skipped += steps.filter(s => s.status === 'skipped').length;
+    if (isA11y) {
+      const violations = bData.violations || [];
+      for (const v of violations) {
+        const occurrences = v.nodes.length;
+        totalViolations += occurrences;
+        if (v.impact === 'critical') criticalCount += occurrences;
+        else if (v.impact === 'serious') seriousCount += occurrences;
+        else if (v.impact === 'moderate') moderateCount += occurrences;
+        else minorCount += occurrences;
+      }
+    } else {
+      const steps = bData.steps || [];
+      totalSteps += steps.length;
+      passed += steps.filter(s => s.status === 'passed').length;
+      failed += steps.filter(s => s.status === 'failed').length;
+      skipped += steps.filter(s => s.status === 'skipped').length;
+    }
   }
 
-  const passRate = totalSteps > 0 ? ((passed / totalSteps) * 100).toFixed(1) : '0.0';
+  // Suite level totals
+  const totalSuiteCases = results.totalCases || (results.suiteResults ? results.suiteResults.length : 0);
+  const passedSuiteCases = results.passedCases || (results.suiteResults ? results.suiteResults.filter(c => c.status === 'passed').length : 0);
+  const failedSuiteCases = results.failedCases || (results.suiteResults ? results.suiteResults.filter(c => c.status === 'failed').length : 0);
+
+  const passRate = isSuite
+    ? (totalSuiteCases > 0 ? ((passedSuiteCases / totalSuiteCases) * 100).toFixed(1) : '0.0')
+    : (totalSteps > 0 ? ((passed / totalSteps) * 100).toFixed(1) : '0.0');
+
   const duration = startTime && endTime
     ? ((new Date(endTime) - new Date(startTime)) / 1000).toFixed(2)
     : '0.00';
-  const overallStatus = failed > 0 ? 'failed' : 'passed';
+
+  const overallStatus = isA11y
+    ? (totalViolations > 0 ? 'failed' : 'passed')
+    : (isSuite ? (failedSuiteCases > 0 ? 'failed' : 'passed') : (failed > 0 ? 'failed' : 'passed'));
+
   const timestamp = new Date(startTime || Date.now()).toLocaleString('en-US', {
     dateStyle: 'full',
     timeStyle: 'medium'
@@ -125,8 +166,14 @@ function buildReportHTML(runId, results) {
       ${browserKeys.map((b, idx) => {
         const bData = browsersData[b];
         const failedCount = (bData.steps || []).filter(s => s.status === 'failed').length;
-        const badgeClass = failedCount > 0 ? 'failed' : 'passed';
-        const badgeText = failedCount > 0 ? '❌ Failed' : '✅ Passed';
+        
+        const badgeClass = isA11y
+          ? ((bData.violations || []).length > 0 ? 'failed' : 'passed')
+          : (failedCount > 0 ? 'failed' : 'passed');
+        const badgeText = isA11y
+          ? ((bData.violations || []).length > 0 ? `${(bData.violations || []).length} Violations` : '✓ Compliant')
+          : (failedCount > 0 ? '❌ Failed' : '✅ Passed');
+          
         return `
           <button class="report-tab-btn ${idx === 0 ? 'active' : ''}" onclick="showBrowserReport('${b}')" data-browser="${b}">
             <span>${b.toUpperCase()}</span>
@@ -142,6 +189,48 @@ function buildReportHTML(runId, results) {
     <div class="browser-report-contents">
       ${browserKeys.map((b, idx) => {
         const bData = browsersData[b];
+        
+        if (isA11y) {
+          const violations = bData.violations || [];
+          const violationsHTML = violations.length > 0
+            ? violations.map((v, vIdx) => buildViolationRow(v, vIdx, b)).join('\n')
+            : '<div class="no-steps">🎉 No accessibility violations detected on this browser! Your page is compliant.</div>';
+
+          // Extract screenshot from the navigation step if available
+          const screenshotStep = (bData.steps || []).find(s => s.screenshot);
+          const pageScreenshot = screenshotStep ? screenshotStep.screenshot : null;
+          const pageScreenshotHTML = pageScreenshot
+            ? `<div class="accessibility-screenshot-container" style="background:#fff; border-radius:10px; padding:20px; border:1px solid #e2e8f0; margin-bottom: 24px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-align: center;">
+                <h3 style="font-size:16px; font-weight:600; margin-bottom:12px; color:#0f172a; text-align:left;">📸 Page Visual Snapshot (${b.toUpperCase()})</h3>
+                <img src="data:image/png;base64,${pageScreenshot}" alt="Page visual snapshot" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;" onclick="this.classList.toggle('expanded')"/>
+               </div>`
+            : '';
+
+          return `
+            <div id="browser-steps-${b}" class="browser-steps-content" style="display: ${idx === 0 ? 'block' : 'none'};">
+              ${pageScreenshotHTML}
+              <div class="violations-container">
+                ${violationsHTML}
+              </div>
+            </div>
+          `;
+        }
+
+        if (isSuite) {
+          const suiteCases = bData.suiteResults || results.suiteResults || [];
+          const suiteHTML = suiteCases.length > 0
+            ? suiteCases.map((tc, tcIdx) => buildSuiteCaseRow(tc, tcIdx, b)).join('\n')
+            : '<div class="no-steps">No test cases executed in suite</div>';
+
+          return `
+            <div id="browser-steps-${b}" class="browser-steps-content" style="display: ${idx === 0 ? 'block' : 'none'};">
+              <div class="suite-cases-container">
+                ${suiteHTML}
+              </div>
+            </div>
+          `;
+        }
+
         const steps = bData.steps || [];
         const stepRows = steps.map((step, sIdx) => buildStepRow(step, sIdx, b)).join('\n');
         
@@ -227,7 +316,7 @@ function buildReportHTML(runId, results) {
     </div>
     <nav class="sidebar-nav">
       <a href="#overview" class="nav-item active">📊 Overview</a>
-      <a href="#steps" class="nav-item">📋 Test Steps</a>
+      <a href="#steps" class="nav-item">${isA11y ? '♿ Accessibility Violations' : '📋 Test Steps'}</a>
       ${hasOverallConsoleErrors ? '<a href="#console-errors" class="nav-item">🔴 Console Errors</a>' : ''}
       <a href="#environment" class="nav-item">⚙️ Environment</a>
     </nav>
@@ -260,33 +349,77 @@ function buildReportHTML(runId, results) {
 
     <!-- Overview Section -->
     <section id="overview" class="section">
-      <div class="summary-cards">
-        <div class="card card-total">
-          <div class="card-value">${totalSteps}</div>
-          <div class="card-label">Total Steps</div>
-        </div>
-        <div class="card card-passed">
-          <div class="card-value">${passed}</div>
-          <div class="card-label">Passed</div>
-        </div>
-        <div class="card card-failed">
-          <div class="card-value">${failed}</div>
-          <div class="card-label">Failed</div>
-        </div>
-        <div class="card card-skipped">
-          <div class="card-value">${skipped}</div>
-          <div class="card-label">Skipped</div>
-        </div>
-      </div>
+      ${isA11y
+        ? `<div class="summary-cards accessibility-cards">
+            <div class="card card-total">
+              <div class="card-value">${totalViolations}</div>
+              <div class="card-label">Total Violations</div>
+            </div>
+            <div class="card card-critical">
+              <div class="card-value">${criticalCount}</div>
+              <div class="card-label">Critical</div>
+            </div>
+            <div class="card card-serious">
+              <div class="card-value">${seriousCount}</div>
+              <div class="card-label">Serious</div>
+            </div>
+            <div class="card card-moderate">
+              <div class="card-value">${moderateCount}</div>
+              <div class="card-label">Moderate</div>
+            </div>
+            <div class="card card-minor">
+              <div class="card-value">${minorCount}</div>
+              <div class="card-label">Minor</div>
+            </div>
+          </div>`
+        : (isSuite
+            ? `<div class="summary-cards">
+                <div class="card card-total">
+                  <div class="card-value">${totalSuiteCases}</div>
+                  <div class="card-label">Test Cases</div>
+                </div>
+                <div class="card card-passed">
+                  <div class="card-value">${passedSuiteCases}</div>
+                  <div class="card-label">Passed Cases</div>
+                </div>
+                <div class="card card-failed">
+                  <div class="card-value">${failedSuiteCases}</div>
+                  <div class="card-label">Failed Cases</div>
+                </div>
+                <div class="card card-skipped">
+                  <div class="card-value">${totalSteps}</div>
+                  <div class="card-label">Total Steps Executed</div>
+                </div>
+              </div>`
+            : `<div class="summary-cards">
+                <div class="card card-total">
+                  <div class="card-value">${totalSteps}</div>
+                  <div class="card-label">Total Steps</div>
+                </div>
+                <div class="card card-passed">
+                  <div class="card-value">${passed}</div>
+                  <div class="card-label">Passed</div>
+                </div>
+                <div class="card card-failed">
+                  <div class="card-value">${failed}</div>
+                  <div class="card-label">Failed</div>
+                </div>
+                <div class="card card-skipped">
+                  <div class="card-value">${skipped}</div>
+                  <div class="card-label">Skipped</div>
+                </div>
+              </div>`
+          )
+      }
 
-      <!-- Pass Rate Bar -->
+      <!-- Pass Rate / Compliance Bar -->
       <div class="pass-rate-container">
         <div class="pass-rate-header">
-          <span>Pass Rate</span>
-          <span class="pass-rate-value">${passRate}%</span>
+          <span>${isA11y ? 'Accessibility Assessment' : 'Pass Rate'}</span>
+          <span class="pass-rate-value">${isA11y ? (totalViolations === 0 ? '100% Compliant' : 'Issues Found') : `${passRate}%`}</span>
         </div>
         <div class="progress-bar">
-          <div class="progress-fill ${overallStatus}" style="width: ${passRate}%"></div>
+          <div class="progress-fill ${overallStatus}" style="width: ${isA11y ? (totalViolations === 0 ? 100 : 50) : passRate}%"></div>
         </div>
       </div>
 
@@ -296,9 +429,9 @@ function buildReportHTML(runId, results) {
       </div>
     </section>
 
-    <!-- Test Steps Section -->
+    <!-- Test Steps / Violations Section -->
     <section id="steps" class="section">
-      <h2>📋 Test Steps</h2>
+      <h2>${isA11y ? '♿ Accessibility Audit Report' : '📋 Test Steps'}</h2>
       ${reportTabsHTML}
       ${stepsContentsHTML}
     </section>
@@ -311,12 +444,12 @@ function buildReportHTML(runId, results) {
       <h2>⚙️ Environment</h2>
       <table class="env-table">
         <tr><td>URL</td><td><a href="${escapeHtml(url)}" target="_blank">${escapeHtml(url)}</a></td></tr>
-        <tr><td>Mode</td><td><span class="mode-badge ${mode}">${results.exploratoryType === 'documentation' ? '🤖 AI Business Auto-Doc' : (mode === 'exploratory' ? '🤖 AI Bug Hunter' : '📄 Scripted (CSV)')}</span></td></tr>
+        <tr><td>Mode</td><td><span class="mode-badge ${mode}">${results.mode === 'accessibility' ? '♿ Accessibility Scan' : (results.exploratoryType === 'documentation' ? '🤖 AI Business Auto-Doc' : (mode === 'exploratory' ? '🤖 AI Bug Hunter' : '📄 Scripted (CSV)'))}</span></td></tr>
         ${results.exploratoryType === 'documentation'
           ? `<tr><td>Functional Spec</td><td><a href="/reports/${runId}/documentation-spec.docx" download style="font-weight: 600; color: #4f46e5; text-decoration: none;">📥 Download Word Business Spec (.docx)</a></td></tr>`
           : ''
         }
-        <tr><td>Ollama Model</td><td>${escapeHtml(model)}</td></tr>
+        <tr><td>Ollama Model</td><td>${isA11y ? 'N/A' : escapeHtml(model)}</td></tr>
         <tr><td>Device Emulation</td><td>${deviceProfile && deviceProfile !== 'desktop' ? `<code>${escapeHtml(deviceProfile)}</code>` : 'Desktop (1280x720)'}</td></tr>
         <tr><td>Active Browsers</td><td>${browserKeys.map(b => `<span class="mode-badge scripted" style="margin-right: 5px; text-transform: uppercase;">${b}</span>`).join('')}</td></tr>
         <tr><td>Duration</td><td>${duration}s</td></tr>
@@ -331,6 +464,65 @@ function buildReportHTML(runId, results) {
   </script>
 </body>
 </html>`;
+}
+
+/**
+ * Build a single suite test case card with collapsible step execution
+ */
+function buildSuiteCaseRow(tc, tcIndex, browser) {
+  const {
+    testCaseId = `TC-${tcIndex + 1}`,
+    title = '',
+    module = '',
+    priority = 'Medium',
+    status = 'passed',
+    duration = 0,
+    error = null,
+    expectedResult = '',
+    preconditions = '',
+    originalSteps = '',
+    steps = []
+  } = tc;
+
+  const toggleId = `tc-${browser}-${tcIndex}`;
+  const statusIcon = status === 'passed' ? '✓' : '✗';
+  const statusClass = status === 'passed' ? 'passed' : 'failed';
+
+  const stepRowsHTML = steps.length > 0
+    ? steps.map((s, sIdx) => buildStepRow(s, sIdx, `${browser}-tc-${tcIndex}`)).join('\n')
+    : '<div class="no-steps">No steps executed</div>';
+
+  return `
+    <div class="step-item ${statusClass}" data-tc-index="${toggleId}" style="margin-bottom: 16px;">
+      <div class="step-header" onclick="toggleStep('${toggleId}')" style="padding: 16px;">
+        <div class="step-left">
+          <span class="step-status-icon ${statusClass}">${statusIcon}</span>
+          <span class="step-number" style="font-weight: 700; color: #4f46e5;">${escapeHtml(testCaseId)}</span>
+          <span class="step-name" style="font-weight: 600;">${escapeHtml(title)}</span>
+          ${module ? `<span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #e0e7ff; color: #3730a3; font-weight: 600;">${escapeHtml(module)}</span>` : ''}
+          ${priority ? `<span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #f1f5f9; color: #475569;">${escapeHtml(priority)}</span>` : ''}
+        </div>
+        <div class="step-right">
+          <span class="step-duration">${(duration / 1000).toFixed(1)}s</span>
+          <span class="step-chevron" id="chevron-${toggleId}">▸</span>
+        </div>
+      </div>
+      <div class="step-details" id="step-details-${toggleId}" style="display:none; padding: 16px;">
+        <div class="step-meta" style="margin-bottom: 12px; display: grid; gap: 6px;">
+          ${preconditions ? `<div class="meta-row"><span class="meta-label">Preconditions:</span> ${escapeHtml(preconditions)}</div>` : ''}
+          ${originalSteps ? `<div class="meta-row"><span class="meta-label">Natural Steps:</span> <code>${escapeHtml(originalSteps)}</code></div>` : ''}
+          ${expectedResult ? `<div class="meta-row"><span class="meta-label">Expected Result:</span> ${escapeHtml(expectedResult)}</div>` : ''}
+          ${error ? `<div class="step-error" style="margin-top: 8px;"><strong>Failure Error:</strong> ${escapeHtml(error)}</div>` : ''}
+        </div>
+        <div style="margin-top: 12px; border-top: 1px solid #e2e8f0; pt-12;">
+          <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #334155;">Playwright Action Steps (${steps.length}):</h4>
+          <div class="steps-container">
+            ${stepRowsHTML}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -447,6 +639,78 @@ function buildStepRow(step, index, browser) {
         ${screenshotHTML}
       </div>
     </div>`;
+}
+
+/**
+ * Build a single violation row with collapsible occurrences
+ */
+function buildViolationRow(violation, index, browser) {
+  const {
+    id = '',
+    impact = 'minor',
+    description = '',
+    help = '',
+    helpUrl = '',
+    nodes = []
+  } = violation;
+
+  const toggleId = `violation-${browser}-${index}`;
+  
+  const impactBadges = {
+    critical: '<span class="impact-badge critical">Critical</span>',
+    serious: '<span class="impact-badge serious">Serious</span>',
+    moderate: '<span class="impact-badge moderate">Moderate</span>',
+    minor: '<span class="impact-badge minor">Minor</span>'
+  };
+  
+  const badgeHTML = impactBadges[impact] || `<span class="impact-badge minor">${impact}</span>`;
+  
+  const occurrencesHTML = nodes.map((node, nIdx) => {
+    return `
+      <div class="violation-occurrence" onclick="event.stopPropagation()">
+        <div class="occurrence-header">
+          <span>Occurrence #${nIdx + 1}</span>
+          ${node.isDynamic ? '<span class="dynamic-badge">Dynamic State</span>' : ''}
+        </div>
+        <div class="occurrence-meta">
+          <div class="meta-row"><span class="meta-label">Target CSS:</span> <code>${escapeHtml(node.target)}</code></div>
+        </div>
+        <div class="occurrence-code">
+          <div class="code-header">Offending Element HTML</div>
+          <pre><code>${escapeHtml(node.html)}</code></pre>
+        </div>
+        <div class="occurrence-remediation">
+          <strong>How to fix:</strong>
+          <p>${escapeHtml(node.failureSummary)}</p>
+        </div>
+      </div>
+    `;
+  }).join('\n');
+
+  return `
+    <div class="violation-item ${impact}" data-violation-index="${toggleId}">
+      <div class="violation-header" onclick="toggleStep('${toggleId}')">
+        <div class="violation-left">
+          ${badgeHTML}
+          <span class="violation-rule-id"><code>${escapeHtml(id)}</code></span>
+          <span class="violation-help">${escapeHtml(help)}</span>
+        </div>
+        <div class="violation-right">
+          <span class="violation-count">${nodes.length} occurrence(s)</span>
+          <span class="step-chevron" id="chevron-${toggleId}">▸</span>
+        </div>
+      </div>
+      <div class="violation-details" id="step-details-${toggleId}" style="display:none;">
+        <div class="violation-description">
+          <strong>Description:</strong> ${escapeHtml(description)}
+          ${helpUrl ? `<br><a href="${escapeHtml(helpUrl)}" target="_blank" class="rule-help-link">Learn more about rule ${escapeHtml(id)} ↗</a>` : ''}
+        </div>
+        <div class="occurrences-list">
+          ${occurrencesHTML}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -1067,6 +1331,176 @@ function getReportCSS() {
       color: #e2e8f0;
       font-size: 12px;
     }
+    
+    /* Accessibility Card Colors */
+    .card-critical { border-top-color: #dc2626; }
+    .card-critical .card-value { color: #dc2626; }
+    .card-serious { border-top-color: #ea580c; }
+    .card-serious .card-value { color: #ea580c; }
+    .card-moderate { border-top-color: #eab308; }
+    .card-moderate .card-value { color: #eab308; }
+    .card-minor { border-top-color: #3b82f6; }
+    .card-minor .card-value { color: #3b82f6; }
+    
+    .accessibility-cards {
+      grid-template-columns: repeat(5, 1fr) !important;
+    }
+
+    /* Violation Dashboard Styles */
+    .violations-container {
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .violation-item {
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .violation-item:last-child { border-bottom: none; }
+    
+    .violation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .violation-header:hover { background: #f8fafc; }
+    
+    .violation-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .violation-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .violation-rule-id {
+      font-weight: 600;
+    }
+    .violation-help {
+      font-size: 14px;
+      color: #334155;
+      font-weight: 500;
+    }
+    .violation-count {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 600;
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    
+    .impact-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .impact-badge.critical { background: #fee2e2; color: #991b1b; }
+    .impact-badge.serious { background: #ffedd5; color: #9a3412; }
+    .impact-badge.moderate { background: #fef9c3; color: #854d0e; }
+    .impact-badge.minor { background: #dbeafe; color: #1e40af; }
+    
+    .violation-details {
+      padding: 0 20px 20px 20px;
+      animation: slideDown 0.2s ease;
+    }
+    .violation-description {
+      font-size: 13.5px;
+      color: #475569;
+      background: #f8fafc;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .rule-help-link {
+      color: #4f46e5;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-block;
+      margin-top: 6px;
+    }
+    .rule-help-link:hover { text-decoration: underline; }
+    
+    .occurrences-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .violation-occurrence {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      background: #fff;
+    }
+    .occurrence-header {
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .dynamic-badge {
+      background: #f3e8ff;
+      color: #6b21a8;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .occurrence-meta {
+      margin-bottom: 10px;
+    }
+    .occurrence-code pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin-top: 4px;
+    }
+    .occurrence-code code {
+      background: none;
+      padding: 0;
+      color: inherit;
+      font-size: 12px;
+    }
+    .occurrence-remediation {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #334155;
+      line-height: 1.5;
+    }
+    .occurrence-remediation strong {
+      color: #0f172a;
+    }
+    .occurrence-remediation p {
+      margin-top: 4px;
+    }
+    
+    .mode-badge.accessibility { background: #fae8ff; color: #86198f; }
+    
+    /* Expandable image styling */
+    .accessibility-screenshot-container img {
+      transition: transform 0.3s;
+      object-fit: contain;
+    }
+    .accessibility-screenshot-container img.expanded {
+      max-height: none !important;
+      transform: scale(1.02);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
   `;
 }
 
@@ -1130,6 +1564,17 @@ function getReportJS() {
     document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.step-item.failed').forEach(item => {
         const index = item.dataset.stepIndex;
+        const details = document.getElementById('step-details-' + index);
+        const chevron = document.getElementById('chevron-' + index);
+        if (details) {
+          details.style.display = 'block';
+          chevron.textContent = '▾';
+        }
+      });
+      
+      // Expand critical/serious violations by default
+      document.querySelectorAll('.violation-item.critical, .violation-item.serious').forEach(item => {
+        const index = item.dataset.violationIndex;
         const details = document.getElementById('step-details-' + index);
         const chevron = document.getElementById('chevron-' + index);
         if (details) {

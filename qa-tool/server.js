@@ -19,6 +19,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { runScriptedTest } from './src/engines/scripted.js';
 import { runExploratoryTest, checkOllamaStatus } from './src/engines/exploratory.js';
+import { runAccessibilityTest } from './src/engines/accessibility.js';
+import { runTestSuite, isSuiteCSV } from './src/engines/suite-runner.js';
 import { generateReport } from './src/utils/report-generator.js';
 import { generateDocxReport } from './src/utils/docx-generator.js';
 
@@ -169,7 +171,7 @@ app.get('/api/reports', (req, res) => {
  */
 app.post('/run-test', upload.single('csvFile'), async (req, res) => {
   try {
-    const { url, cookies: cookiesStr, exploratoryMode, exploratoryType, model, csvText, browsers: browsersRaw, deviceProfile } = req.body;
+    const { url, cookies: cookiesStr, exploratoryMode, exploratoryType, model, csvText, browsers: browsersRaw, deviceProfile, testingMode } = req.body;
     const csvFile = req.file;
 
     // Parse browsers array
@@ -216,14 +218,33 @@ app.post('/run-test', upload.single('csvFile'), async (req, res) => {
     }
 
     // --- Determine test mode ---
+    const isA11y = testingMode === 'accessibility';
     const isExploratory = exploratoryMode === 'true' || exploratoryMode === true;
     const selectedModel = model || 'qwen2.5-coder:7b';
 
-    // If not exploratory, CSV is required (either via file upload or raw text)
-    if (!isExploratory && !csvFile && (!csvText || !csvText.trim())) {
+    // If not exploratory and not accessibility, CSV is required (either via file upload or raw text)
+    if (!isExploratory && !isA11y && !csvFile && (!csvText || !csvText.trim())) {
       return res.status(400).json({
         error: 'Either upload a CSV file, write a test case, or enable AI Exploratory Mode'
       });
+    }
+
+    // --- Detect suite CSV format ---
+    let isSuiteMode = false;
+    let suiteContent = null;
+    if (!isExploratory && !isA11y) {
+      suiteContent = csvFile ? csvFile.buffer.toString('utf-8') : (csvText || '');
+      if (isSuiteCSV(suiteContent)) {
+        isSuiteMode = true;
+        // Suite mode requires Ollama for natural-language conversion
+        const ollamaCheck = await checkOllamaStatus(OLLAMA_URL, selectedModel);
+        if (!ollamaCheck.available) {
+          return res.status(503).json({
+            error: `Running a test suite requires Ollama to convert natural-language test cases. Please start Ollama at ${OLLAMA_URL}.`,
+            details: ollamaCheck.error
+          });
+        }
+      }
     }
 
     // Check if we need conversion and if Ollama is running
@@ -232,7 +253,7 @@ app.post('/run-test', upload.single('csvFile'), async (req, res) => {
       contentToCheck = csvFile.buffer.toString('utf-8');
     }
 
-    if (!isExploratory && contentToCheck) {
+    if (!isExploratory && !isA11y && contentToCheck) {
       const prepared = prepareCSVContent(contentToCheck);
       if (prepared === null) {
         const ollamaCheck = await checkOllamaStatus(OLLAMA_URL, selectedModel);
@@ -246,7 +267,7 @@ app.post('/run-test', upload.single('csvFile'), async (req, res) => {
     }
 
     // If exploratory, validate Ollama
-    if (isExploratory) {
+    if (isExploratory && !isA11y) {
       const ollamaCheck = await checkOllamaStatus(OLLAMA_URL, selectedModel);
       if (!ollamaCheck.available) {
         return res.status(503).json({
@@ -262,7 +283,7 @@ app.post('/run-test', upload.single('csvFile'), async (req, res) => {
     const runData = {
       id: runId,
       status: 'running',
-      mode: isExploratory ? 'exploratory' : 'scripted',
+      mode: isA11y ? 'accessibility' : (isExploratory ? 'exploratory' : (isSuiteMode ? 'suite' : 'scripted')),
       exploratoryType: isExploratory ? (exploratoryType || 'bug-hunting') : null,
       url,
       model: selectedModel,
@@ -291,7 +312,10 @@ app.post('/run-test', upload.single('csvFile'), async (req, res) => {
       exploratoryType: exploratoryType || 'bug-hunting',
       selectedModel,
       browsers,
-      deviceProfile: deviceProfile || 'desktop'
+      deviceProfile: deviceProfile || 'desktop',
+      testingMode,
+      isSuiteMode,
+      suiteContent
     }, controller.signal);
 
   } catch (error) {
@@ -702,8 +726,9 @@ Do NOT include any markdown code fences, backticks, or other text outside the JS
  * Execute test asynchronously and stream progress via SSE
  */
 async function executeTestAsync(runData, testConfig, signal) {
-  const { url, cookies, csvFile, csvText, isExploratory, exploratoryType = 'bug-hunting', selectedModel, browsers = ['chrome'], deviceProfile = 'desktop' } = testConfig;
+  const { url, cookies, csvFile, csvText, isExploratory, exploratoryType = 'bug-hunting', selectedModel, browsers = ['chrome'], deviceProfile = 'desktop', testingMode, isSuiteMode = false, suiteContent = null } = testConfig;
   const startTime = new Date();
+  const isA11y = testingMode === 'accessibility';
 
   // Progress callback that broadcasts to all SSE clients
   const onProgress = (event) => {
@@ -719,7 +744,7 @@ async function executeTestAsync(runData, testConfig, signal) {
 
   try {
     let compiledCsvContent = null;
-    if (!isExploratory) {
+    if (!isExploratory && !isA11y) {
       let content = csvFile ? csvFile.buffer.toString('utf-8') : csvText;
       
       const prepared = prepareCSVContent(content);
@@ -747,7 +772,17 @@ async function executeTestAsync(runData, testConfig, signal) {
         browserOnProgress({ type: 'status', message: `Starting test execution on ${browserName}...` });
         let runResult;
 
-        if (isExploratory) {
+        if (isA11y) {
+          runResult = await runAccessibilityTest({
+            url,
+            cookies,
+            runId: runData.id,
+            onProgress: browserOnProgress,
+            signal,
+            browserName,
+            deviceProfile
+          });
+        } else if (isExploratory) {
           runResult = await runExploratoryTest({
             url,
             cookies,
@@ -758,6 +793,19 @@ async function executeTestAsync(runData, testConfig, signal) {
             signal,
             browserName,
             exploratoryType,
+            deviceProfile
+          });
+        } else if (isSuiteMode) {
+          runResult = await runTestSuite({
+            url,
+            cookies,
+            csvContent: suiteContent,
+            model: selectedModel,
+            ollamaUrl: OLLAMA_URL,
+            runId: runData.id,
+            onProgress: browserOnProgress,
+            signal,
+            browserName,
             deviceProfile
           });
         } else {
@@ -783,9 +831,9 @@ async function executeTestAsync(runData, testConfig, signal) {
 
         // Fallback result for failed browser execution
         resultsByBrowser[browserName] = {
-          testName: isExploratory ? 'AI Exploratory Test' : 'Scripted Test (CSV)',
+          testName: isA11y ? 'Accessibility Scan' : (isExploratory ? 'AI Exploratory Test' : 'Scripted Test (CSV)'),
           url,
-          mode: isExploratory ? 'exploratory' : 'scripted',
+          mode: isA11y ? 'accessibility' : (isExploratory ? 'exploratory' : 'scripted'),
           model: selectedModel,
           startTime: startTime.toISOString(),
           endTime: new Date().toISOString(),
@@ -813,9 +861,9 @@ async function executeTestAsync(runData, testConfig, signal) {
 
     const endTime = new Date();
     const consolidatedResults = {
-      testName: isExploratory ? 'AI Exploratory Test' : 'Scripted Test (CSV)',
+      testName: isA11y ? 'Accessibility Scan' : (isExploratory ? 'AI Exploratory Test' : (isSuiteMode ? 'Test Suite Execution' : 'Scripted Test (CSV)')),
       url,
-      mode: isExploratory ? 'exploratory' : 'scripted',
+      mode: isA11y ? 'accessibility' : (isExploratory ? 'exploratory' : (isSuiteMode ? 'suite' : 'scripted')),
       exploratoryType: isExploratory ? exploratoryType : null,
       model: selectedModel,
       deviceProfile,
@@ -892,6 +940,7 @@ async function executeTestAsync(runData, testConfig, signal) {
         passed: overallPassed,
         failed: overallFailed,
         exploratoryType: isExploratory ? exploratoryType : null,
+        testingMode: isA11y ? 'accessibility' : null,
         duration: ((endTime - startTime) / 1000).toFixed(2) + 's'
       }
     };

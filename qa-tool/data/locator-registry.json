@@ -38,7 +38,7 @@
     "healed": "xpath=//*[@id=\"menu-item-2330\"]/a[1]",
     "lastHealed": "2026-05-28T16:03:17.084Z",
     "healCount": 1,
-    "successRuns": 5
+    "successRuns": 6
   },
   "/:input[name=\"username\"]": {
     "original": "input[name=\"username\"]",
@@ -54,8 +54,8 @@
     "alternatives": [
       "xpath=body/div[8]/div[2]/div[1]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/form[1]/div[1]/div[2]/div[1]/input[1]"
     ],
-    "lastHealed": "2026-05-31T13:43:16.080Z",
-    "healCount": 6,
+    "lastHealed": "2026-07-28T10:01:34.105Z",
+    "healCount": 7,
     "healed": "xpath=body/div[8]/div[2]/div[1]/div[1]/div[2]/div[1]/div[1]/div[2]/div[1]/form[1]/div[1]/div[2]/div[1]/input[1]"
   },
   "/:.nav-shop": {
@@ -76,7 +76,7 @@
     "healed": "xpath=//*[@id=\"main\"]/ul[1]/li[1]/a[2]",
     "lastHealed": "2026-05-28T16:15:13.157Z",
     "healCount": 1,
-    "successRuns": 4
+    "successRuns": 5
   },
   "/:button.btn[type='submit']": {
     "original": "button.btn[type='submit']",
@@ -192,9 +192,9 @@
     "alternatives": [
       "xpath=//*[@id=\"form_email_1\"]"
     ],
-    "healed": "xpath=//*[@id=\"form_email_1\"]",
-    "lastHealed": "2026-05-28T18:15:34.923Z",
-    "healCount": 3
+    "lastHealed": "2026-07-28T10:01:00.260Z",
+    "healCount": 4,
+    "healed": "xpath=//*[@id=\"form_email_1\"]"
   },
   "/:.btn-primary[type=\"submit\"]": {
     "original": ".btn-primary[type=\"submit\"]",
@@ -231,7 +231,7 @@
     "healed": "xpath=//*[@id=\"login\"]/button[1]",
     "lastHealed": "2026-05-29T00:27:31.954Z",
     "healCount": 1,
-    "successRuns": 13
+    "successRuns": 14
   },
   "/login:#login-btn": {
     "original": "#login-btn",
@@ -249,7 +249,8 @@
     ],
     "healed": "xpath=//*[@id=\"login\"]/button[1]",
     "lastHealed": "2026-06-03T08:54:22.179Z",
-    "healCount": 1
+    "healCount": 1,
+    "successRuns": 1
   },
   "/:.nav-mobilfunk.tarife-mit-vertrag": {
     "original": ".nav-mobilfunk.tarife-mit-vertrag",
@@ -431,6 +432,408 @@
     ],
     "healed": "xpath=//*[@id=\"mc-nav-list-a45b7a2a-0130-4ffa-b115-1d606d71a8cb\"]/li[1]/a[1]",
     "lastHealed": "2026-06-03T09:51:26.743Z",
+    "healCount": 1
+  },
+  "/:.submenu-item-tarife-mit-vertrag": {
+    "original": ".submenu-item-tarife-mit-vertrag",
+    "alternatives": [
+      "xpath=//*[@id=\"list-cards\"]/div[1]/div[1]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"list-cards\"]/div[1]/div[1]/a[1]",
+    "lastHealed": "2026-06-03T09:56:25.336Z",
+    "healCount": 1
+  },
+  "/privat/handys-tablets-tarife/alle-tarife-mit-vertrag.html:.tariff-option-25gb-statt-7gb": {
+    "original": ".tariff-option-25gb-statt-7gb",
+    "alternatives": [
+      "xpath=//*[@id=\"contact-flyout__trigger\"]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"contact-flyout__trigger\"]/button[1]",
+    "lastHealed": "2026-06-03T09:56:37.074Z",
+    "healCount": 1
+  },
+  "/privat/handys-tablets-tarife/alle-tarife-mit-vertrag.html:.button-weiter-mit-diesem-anbieten": {
+    "original": ".button-weiter-mit-diesem-anbieten",
+    "alternatives": [
+      "xpath=//button[contains(., 'mit')]"
+    ],
+    "healed": "xpath=//button[contains(., 'mit')]",
+    "lastHealed": "2026-06-03T09:57:09.417Z",
+    "healCount": 1
+  },
+  "/privat/handys-tablets-tarife/mobilfunk-tarife-extras.html:.button-zum-warenkorb": {
+    "original": ".button-zum-warenkorb",
+    "alternatives": [
+      "xpath=//*[@id=\"mc-header\"]/nav[1]/div[2]/div[1]/ul[1]/li[2]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"mc-header\"]/nav[1]/div[2]/div[1]/ul[1]/li[2]/a[1]",
+    "lastHealed": "2026-06-03T09:57:29.119Z",
+    "healCount": 1
+  },
+  "/shop/warenkorb.html:.button-alle-infos-unterbrechen": {
+    "original": ".button-alle-infos-unterbrechen",
+    "alternatives": [
+      "xpath=//*[@id=\"mc-footer\"]/nav[2]/div[2]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"mc-footer\"]/nav[2]/div[2]/a[1]",
+    "lastHealed": "2026-06-03T09:57:42.386Z",
+    "healCount": 1
+  },
+  "/retoure-react/landingPage:.kündigung-trigger": {
+    "original": ".kündigung-trigger",
+    "alternatives": [
+      "xpath=//*[@id=\"Termination-desktop-button-id\"]"
+    ],
+    "healed": "xpath=//*[@id=\"Termination-desktop-button-id\"]",
+    "lastHealed": "2026-06-03T10:02:52.063Z",
+    "healCount": 1
+  },
+  "/retoure-react/landingPage:.produkte-anzeigen": {
+    "original": ".produkte-anzeigen",
+    "alternatives": [
+      "xpath=//*[@id=\"mc-footer-list-46c6eba6-4aba-4e6a-81be-1da0136c6ab1\"]/li[3]/h3[1]"
+    ],
+    "healed": "xpath=//*[@id=\"mc-footer-list-46c6eba6-4aba-4e6a-81be-1da0136c6ab1\"]/li[3]/h3[1]",
+    "lastHealed": "2026-06-03T10:03:04.199Z",
+    "healCount": 1,
+    "successRuns": 1
+  },
+  "/retoure-react/landingPage:.dsl-glasfaser-internet-festnetz": {
+    "original": ".dsl-glasfaser-internet-festnetz",
+    "alternatives": [
+      "xpath=//*[@id=\"mc-footer-list-fd0870df-acda-4f35-986c-99056d607f4d\"]/li[5]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"mc-footer-list-fd0870df-acda-4f35-986c-99056d607f4d\"]/li[5]/a[1]",
+    "lastHealed": "2026-06-03T10:03:16.749Z",
+    "healCount": 1,
+    "successRuns": 1
+  },
+  "/retoure-react/landingPage:.zur-kuendigung": {
+    "original": ".zur-kuendigung",
+    "alternatives": [
+      "xpath=//*[@id=\"Termination-desktop-button-id\"]"
+    ],
+    "healed": "xpath=//*[@id=\"Termination-desktop-button-id\"]",
+    "lastHealed": "2026-06-03T10:06:57.034Z",
+    "healCount": 1
+  },
+  "/retoure-react/landingPage::has-text(\"Produkte anzeigen\")": {
+    "original": ":has-text(\"Produkte anzeigen\")",
+    "alternatives": [
+      "xpath=//*[@id=\"dip-consent-summary\"]/div[4]/div[2]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"dip-consent-summary\"]/div[4]/div[2]/a[1]",
+    "lastHealed": "2026-06-03T10:13:57.767Z",
+    "healCount": 1
+  },
+  "/retoure/landing-page:text=\"Produkte anzeigen\"": {
+    "original": "text=\"Produkte anzeigen\"",
+    "alternatives": [
+      "xpath=//*[@id=\"content\"]/div[2]/div[1]/div[1]/section[1]/div[1]/div[1]/div[1]/app-root[1]/div[1]/landing-page-upgrade[1]/div[1]/ws10-belt-container[1]/div[1]/div[1]/div[1]/process-contact[1]/section[1]/product-chooser[1]/section[1]/ws10-button-link[1]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"content\"]/div[2]/div[1]/div[1]/section[1]/div[1]/div[1]/div[1]/app-root[1]/div[1]/landing-page-upgrade[1]/div[1]/ws10-belt-container[1]/div[1]/div[1]/div[1]/process-contact[1]/section[1]/product-chooser[1]/section[1]/ws10-button-link[1]/button[1]",
+    "lastHealed": "2026-06-03T10:15:34.331Z",
+    "healCount": 1,
+    "successRuns": 2
+  },
+  "/web/index.php/auth/login:a:has-text(\"Forgot your password?\")": {
+    "original": "a:has-text(\"Forgot your password?\")",
+    "alternatives": [
+      "text=\"Forgot your password?\""
+    ],
+    "healed": "text=\"Forgot your password?\"",
+    "lastHealed": "2026-07-28T11:24:59.488Z",
+    "healCount": 1,
+    "successRuns": 1
+  },
+  "/web/index.php/pim/viewEmployeeList:input[placeholder=\"Type for quick search\"]": {
+    "original": "input[placeholder=\"Type for quick search\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T11:31:56.991Z",
+    "healCount": 1
+  },
+  "/web/index.php/pim/viewEmployeeList:.oxd-table-row--with-checkbox input[type=\"checkbox\"]": {
+    "original": ".oxd-table-row--with-checkbox input[type=\"checkbox\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T11:34:39.280Z",
+    "healCount": 1
+  },
+  "/web/index.php/pim/viewEmployeeList:button[aria-label=\"Delete\"]": {
+    "original": "button[aria-label=\"Delete\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/button[1]",
+    "lastHealed": "2026-07-28T11:34:52.232Z",
+    "healCount": 1
+  },
+  "/web/index.php/leave/assignLeave:.oxd-table-cell--center input[type=\"checkbox\"]": {
+    "original": ".oxd-table-cell--center input[type=\"checkbox\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T11:40:25.777Z",
+    "healCount": 1
+  },
+  "/web/index.php/leave/assignLeave:input[name=\"startDate\"]": {
+    "original": "input[name=\"startDate\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T11:40:40.103Z",
+    "healCount": 1
+  },
+  "/web/index.php/leave/assignLeave:input[name=\"endDate\"]": {
+    "original": "input[name=\"endDate\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T11:40:52.366Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/saveSystemUser:input[name=\"user[employeeName]\"]": {
+    "original": "input[name=\"user[employeeName]\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T11:44:03.010Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/saveSystemUser:input[name=\"user[userName]\"]": {
+    "original": "input[name=\"user[userName]\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T11:44:14.712Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/saveSystemUser:input[name=\"user[password]\"]": {
+    "original": "input[name=\"user[password]\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T11:44:26.430Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/viewSystemUsers:a:has-text(\"User Management\")": {
+    "original": "a:has-text(\"User Management\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/header[1]/div[1]/div[1]/span[1]/h6[2]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/header[1]/div[1]/div[1]/span[1]/h6[2]",
+    "lastHealed": "2026-07-28T11:45:39.501Z",
+    "healCount": 1,
+    "successRuns": 2
+  },
+  "/web/index.php/admin/viewSystemUsers:.oxd-table-cell--center:last-child button[type=\"button\"]  # Click Edit button for a specific user": {
+    "original": ".oxd-table-cell--center:last-child button[type=\"button\"]  # Click Edit button for a specific user",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[2]/div[3]/div[1]/div[2]/div[1]/div[1]/div[6]/div[1]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[2]/div[3]/div[1]/div[2]/div[1]/div[1]/div[6]/div[1]/button[1]",
+    "lastHealed": "2026-07-28T11:45:43.494Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/viewSystemUsers:button[type=\"submit\"]:has-text(\"Save\")": {
+    "original": "button[type=\"submit\"]:has-text(\"Save\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T11:46:06.570Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/viewSystemUsers:.oxd-button--label-danger": {
+    "original": ".oxd-button--label-danger",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/button[1]",
+    "lastHealed": "2026-07-28T11:46:57.542Z",
+    "healCount": 1
+  },
+  "/web/index.php/pim/viewEmployeeList:input[placeholder=\"Employee Name\"]": {
+    "original": "input[placeholder=\"Employee Name\"]",
+    "alternatives": [
+      "Coordinates(499, 230)"
+    ],
+    "healed": "Coordinates(499, 230)",
+    "lastHealed": "2026-07-28T12:05:50.553Z",
+    "healCount": 1,
+    "successRuns": 1
+  },
+  "/web/index.php/pim/viewEmployeeList:input[placeholder=\"Type for searching employee\"]": {
+    "original": "input[placeholder=\"Type for searching employee\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T12:08:17.179Z",
+    "healCount": 1
+  },
+  "/web/index.php/pim/viewEmployeeList:div.oxd-main-menu-item:has-text(\"Employee List\")": {
+    "original": "div.oxd-main-menu-item:has-text(\"Employee List\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/header[1]/div[2]/nav[1]/ul[1]/li[2]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/header[1]/div[2]/nav[1]/ul[1]/li[2]/a[1]",
+    "lastHealed": "2026-07-28T12:10:23.988Z",
+    "healCount": 1
+  },
+  "/web/index.php/pim/viewEmployeeList:div.oxd-table-cell:has-text(\"Delete\")": {
+    "original": "div.oxd-table-cell:has-text(\"Delete\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[2]/div[3]/div[1]/div[2]/div[1]/div[1]/div[9]/div[1]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[2]/div[3]/div[1]/div[2]/div[1]/div[1]/div[9]/div[1]/button[1]",
+    "lastHealed": "2026-07-28T12:10:57.362Z",
+    "healCount": 1
+  },
+  "/web/index.php/pim/viewPersonalDetails/empNumber/:id:button:has-text(\"Yes\")": {
+    "original": "button:has-text(\"Yes\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/button[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/button[1]",
+    "lastHealed": "2026-07-28T12:11:11.330Z",
+    "healCount": 1
+  },
+  "/web/index.php/pim/viewEmployeeList:.oxd-pagination-item:has-text(\"2\")": {
+    "original": ".oxd-pagination-item:has-text(\"2\")",
+    "alternatives": [
+      "Coordinates(123, 177)"
+    ],
+    "healed": "Coordinates(123, 177)",
+    "lastHealed": "2026-07-28T12:12:28.059Z",
+    "healCount": 1
+  },
+  "/web/index.php/leave/viewLeaveList:a:has-text(\"Apply Leave\")": {
+    "original": "a:has-text(\"Apply Leave\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/ul[1]/li[3]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/ul[1]/li[3]/a[1]",
+    "lastHealed": "2026-07-28T12:13:08.526Z",
+    "healCount": 1
+  },
+  "/web/index.php/leave/viewLeaveList:a:has-text(\"Entitlements\")": {
+    "original": "a:has-text(\"Entitlements\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/header[1]/div[2]/nav[1]/ul[1]/li[3]/span[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/header[1]/div[2]/nav[1]/ul[1]/li[3]/span[1]",
+    "lastHealed": "2026-07-28T12:17:55.195Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/viewSystemUsers:input[placeholder=\"Username\"]": {
+    "original": "input[placeholder=\"Username\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T12:19:06.242Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/saveSystemUser:.oxd-select-enable:has-text(\"User Role\")": {
+    "original": ".oxd-select-enable:has-text(\"User Role\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/form[1]/div[1]/div[1]/div[1]/div[1]/div[1]/label[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/form[1]/div[1]/div[1]/div[1]/div[1]/div[1]/label[1]",
+    "lastHealed": "2026-07-28T12:20:15.757Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/saveSystemUser:.oxd-select-option:has-text(\"Admin\")": {
+    "original": ".oxd-select-option:has-text(\"Admin\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/ul[1]/li[1]/a[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/ul[1]/li[1]/a[1]",
+    "lastHealed": "2026-07-28T12:20:34.387Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/viewSystemUsers:.oxd-select-enable:has-text(\"Employee Name\")": {
+    "original": ".oxd-select-enable:has-text(\"Employee Name\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[3]/div[1]/div[1]/label[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[3]/div[1]/div[1]/label[1]",
+    "lastHealed": "2026-07-28T12:20:48.374Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/viewSystemUsers:input[placeholder=\"Type for searching employee\"]": {
+    "original": "input[placeholder=\"Type for searching employee\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[2]/form[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T12:21:01.623Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/viewSystemUsers:a:has-text(\"Users\")": {
+    "original": "a:has-text(\"Users\")",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[1]/div[1]/h5[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/div[1]/div[1]/h5[1]",
+    "lastHealed": "2026-07-28T12:22:46.368Z",
+    "healCount": 1
+  },
+  "/web/index.php/admin/viewSystemUsers:.oxd-user-edit": {
+    "original": ".oxd-user-edit",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/header[1]/div[1]/div[1]/span[1]/h6[2]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/header[1]/div[1]/div[1]/span[1]/h6[2]",
+    "lastHealed": "2026-07-28T12:23:01.370Z",
+    "healCount": 1
+  },
+  "/web/index.php/recruitment/addCandidate:input[name=\"email\"]": {
+    "original": "input[name=\"email\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[2]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[2]/input[1]",
+    "lastHealed": "2026-07-28T12:26:46.758Z",
+    "healCount": 1
+  },
+  "/web/index.php/recruitment/addCandidate:input[name=\"phone\"]": {
+    "original": "input[name=\"phone\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[2]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[2]/div[2]/div[1]/div[1]/form[1]/div[1]/div[1]/div[1]/div[1]/div[2]/div[1]/div[2]/input[1]",
+    "lastHealed": "2026-07-28T12:26:58.483Z",
+    "healCount": 1
+  },
+  "/web/index.php/recruitment/viewCandidates:input[name=\"fromDate\"]": {
+    "original": "input[name=\"fromDate\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T12:27:56.756Z",
+    "healCount": 1
+  },
+  "/web/index.php/recruitment/viewCandidates:input[name=\"toDate\"]": {
+    "original": "input[name=\"toDate\"]",
+    "alternatives": [
+      "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]"
+    ],
+    "healed": "xpath=//*[@id=\"app\"]/div[1]/div[1]/aside[1]/nav[1]/div[2]/div[1]/div[1]/input[1]",
+    "lastHealed": "2026-07-28T12:28:08.491Z",
     "healCount": 1
   }
 }
