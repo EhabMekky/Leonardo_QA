@@ -1,0 +1,10 @@
+{
+  "name": "leonardo",
+  "private": true,
+  "description": "Root wrapper — forwards scripts to the Leonardo QA project",
+  "scripts": {
+    "start": "npm --prefix qa-tool start",
+    "dev": "npm --prefix qa-tool run dev"
+  }
+}
+

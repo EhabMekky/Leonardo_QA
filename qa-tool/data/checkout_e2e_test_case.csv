@@ -1,0 +1,25 @@
+Step,Test Data,Result
+1. Navigate to the store URL,,The store home page is displayed.
+"2. Click the ""دخول"" button in the header",,The login form is displayed with Email and Password fields.
+3. Enter Email,ehab@route.com,"The email ""ehab@route.com"" is entered in the Email field."
+4. Enter Password,Route123,The password is entered in the Password field (masked).
+"5. Click the ""دخول"" button to submit the login form",,The user is logged in successfully and redirected to the store page.
+"6. Click ""Add to cart"" for item 1",بطّة الاستحمام الكلاسيكية,"The item ""بطّة الاستحمام الكلاسيكية"" is added to the cart."
+7. Verify item 1 appears in the cart side panel on the left,بطّة الاستحمام الكلاسيكية,"The cart side panel on the left shows ""بطّة الاستحمام الكلاسيكية""."
+8. Verify the cart counter,1,The cart counter increases by 1 (shows 1).
+"9. Click ""Add to cart"" for item 2",دمية بطّة قطنية,"The item ""دمية بطّة قطنية"" is added to the cart."
+10. Verify item 2 appears in the cart side panel on the left,دمية بطّة قطنية,"The cart side panel on the left shows ""دمية بطّة قطنية""."
+11. Verify the cart counter,2,The cart counter increases by 1 (shows 2).
+"12. Click the ""متابعة التسوق"" button",,The checkout form is displayed.
+13. Enter Full Name,Mostafa Madian,"The full name ""Mostafa Madian"" is entered in the Full Name field."
+14. Enter Email,sasa@route.com,"The email ""sasa@route.com"" is entered in the Email field."
+15. Enter Phone,0111111,"The phone ""0111111"" is entered in the Phone field."
+16. Choose Delivery Method,Pickup point,"The ""Pickup point"" delivery method is selected."
+17. Choose Payment Option,Credit Card,"The ""Credit Card"" payment option is selected."
+18. Enter Discount Code,9987,"The code ""9987"" is entered in the Code field."
+"19. Click the ""تطبيق"" button",,The discount code is applied successfully.
+"20. Verify the ""ملخص الطلب"" (Order Summary) section",,"The order summary shows the items fee, the delivery fee, and the total amount with the discount applied."
+"21. Click the ""تأكيد الطلب"" button",,The order is submitted.
+"22. Verify the confirmation page ""تم تسجيل طلبك التجريبي""",,"The page ""تم تسجيل طلبك التجريبي"" is displayed."
+23. Verify the order summary on the confirmation page,,"The order summary is displayed with both items, the customer details, and the final total."
+

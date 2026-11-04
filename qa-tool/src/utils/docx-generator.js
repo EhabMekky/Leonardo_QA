@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getBrowserModeLabel } from '../config.js';
 import { 
   Document, 
   Packer, 
@@ -235,7 +236,7 @@ export async function generateDocxReport(runId, results) {
         new TableRow({
           children: [
             createBodyCell("Browser Executed", false, true),
-            createBodyCell(Object.keys(browsersData).join(", ").toUpperCase() + " (Headless)")
+            createBodyCell(Object.keys(browsersData).join(", ").toUpperCase() + ` (${getBrowserModeLabel()})`)
           ]
         })
       ]

@@ -1,0 +1,14 @@
+Step,Test Data,Result
+1. Navigate to the registration page,,The registration page is displayed with the required fields for creating a new account.
+2. Enter First Name,Test,The first name "Test" is entered in the First Name field.
+3. Enter Last Name,User,The last name "User" is entered in the Last Name field.
+4. Enter Address,123 Main St,The address "123 Main St" is entered in the Address field.
+5. Enter City,New York,The city "New York" is entered in the City field.
+6. Enter State,NY,The state "NY" is entered in the State field.
+7. Enter Zip Code,10001,The zip code "10001" is entered in the Zip Code field.
+8. Enter Phone Number,5551234567,The phone number "5551234567" is entered in the Phone Number field.
+9. Enter SSN,123456789,The SSN "123456789" is entered in the SSN field.
+10. Enter Username,registeruser01,The username "registeruser01" is entered in the Username field.
+11. Enter Password,Password123!,The password "Password123!" is entered in the Password field.
+12. Confirm Password,Password123!,The confirmation password matches the entered password.
+13. Click the Register button,,The user account is created successfully and the user is redirected to the account welcome page or login page.

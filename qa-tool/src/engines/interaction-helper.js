@@ -46,9 +46,9 @@ async function loadRegistry() {
 }
 
 async function saveRegistry(registry) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     writeQueue.push({ registry, resolve, reject });
-    processWriteQueue();
+   await  processWriteQueue();
   });
 }
 
@@ -65,7 +65,7 @@ async function processWriteQueue() {
     reject(err);
   } finally {
     isWriting = false;
-    processWriteQueue();
+    await processWriteQueue();
   }
 }
 
@@ -87,14 +87,14 @@ async function processUpdateQueue() {
     reject(err);
   } finally {
     isUpdating = false;
-    processUpdateQueue();
+    await processUpdateQueue();
   }
 }
 
 function mutateRegistry(updaterFn) {
-  return new Promise((resolve, reject) => {
+  return new Promise( async (resolve, reject) => {
     updateQueue.push({ updaterFn, resolve, reject });
-    processUpdateQueue();
+    await processUpdateQueue();
   });
 }
 
@@ -401,7 +401,24 @@ export async function executeInteraction(page, action, selector, value = '', tim
   }
 
   // ==========================================================================
-  // STRATEGY 4: Text-based Alternative Locators
+  // STRATEGY 4: Generic fallback selectors for implementation mismatches
+  // ==========================================================================
+  const fallbackSelectors = getSelectorFallbacks(selector, action);
+  if (fallbackSelectors.length > 0) {
+    for (const candidate of fallbackSelectors) {
+      if (candidate === selector) continue;
+      try {
+        console.log(`[Self-Healing] Retrying using fallback selector: "${candidate}"`);
+        await runStandardAction(page, action, candidate, value, 4000);
+        return await handleHealSuccess(pageUrl, selector, candidate, `Fallback selector match for "${candidate}"`);
+      } catch (err) {
+        console.warn(`⚠️ Fallback selector "${candidate}" failed: ${err.message}`);
+      }
+    }
+  }
+
+  // ==========================================================================
+  // STRATEGY 5: Text-based Alternative Locators
   // ==========================================================================
   const keywords = extractKeywords(selector);
   console.log(`[Self-Healing] Extracted selector keywords: ${JSON.stringify(keywords)}`);
@@ -498,7 +515,7 @@ export async function executeInteraction(page, action, selector, value = '', tim
   }
 
   // ==========================================================================
-  // STRATEGY 5: XPath Alternative Locators
+  // STRATEGY 6: XPath Alternative Locators
   // ==========================================================================
   if (keywords.length > 0) {
     for (const kw of keywords) {
@@ -531,7 +548,7 @@ export async function executeInteraction(page, action, selector, value = '', tim
   }
 
   // ==========================================================================
-  // STRATEGY 6: Fuzzy DOM Similarity Matcher (Scoring tags, classes, and text)
+  // STRATEGY 7: Fuzzy DOM Similarity Matcher (Scoring tags, classes, and text)
   // ==========================================================================
   let fuzzyMatch = null;
   try {
@@ -645,7 +662,7 @@ export async function executeInteraction(page, action, selector, value = '', tim
   }
 
   // ==========================================================================
-  // STRATEGY 7: Relative Coordinate Click / Parent-Label Bounding Box Offsets
+  // STRATEGY 8: Relative Coordinate Click / Parent-Label Bounding Box Offsets
   // ==========================================================================
   try {
     // A0. Label element target click/fill (If target selector is a label, click relative to it)
@@ -758,6 +775,51 @@ function extractKeywords(selector) {
     .map(w => w.trim())
     // Filter out common short words and tag names to get unique tokens
     .filter(w => w.length > 2 && isNaN(w) && !['input', 'button', 'form', 'class', 'type', 'text', 'first', 'child', 'role', 'name', 'span', 'div', 'select'].includes(w.toLowerCase()));
+}
+
+function getSelectorFallbacks(selector, action) {
+  const base = (selector || '').trim();
+  if (!base) return [];
+
+  const candidates = new Set([base]);
+  const lower = base.toLowerCase();
+  const terms = extractKeywords(base);
+
+  // General fallback for submit actions across HTML implementations
+  if (action === 'click' && /submit|register|login|continue|save|create/.test(lower)) {
+    const fallbackPatterns = [
+      base.replace(/button/gi, 'input'),
+      base.replace(/input/gi, 'button'),
+      base.replace(/\[\s*type\s*=\s*["']submit["']\s*\]/gi, '[type="submit"]'),
+      base.replace(/\[\s*type\s*=\s*["']submit["']\s*\]/gi, 'input[type="submit"]'),
+      ...terms.map(term => `input[type="submit"][value*="${term}" i]`),
+      ...terms.map(term => `button[type="submit"][value*="${term}" i]`),
+      ...terms.map(term => `input[value*="${term}" i]`),
+      ...terms.map(term => `button:has-text("${term}")`)
+    ];
+
+    fallbackPatterns.forEach(p => {
+      if (p && p.trim() && p !== base) candidates.add(p.trim());
+    });
+  }
+
+  // Common fallback for generic click selectors that fail because DOM changed between button/input variants.
+  if (action === 'click') {
+    candidates.add(base.replace(/button/gi, 'input'));
+    candidates.add(base.replace(/input/gi, 'button'));
+    if (base.includes('type="submit"')) {
+      candidates.add('input[type="submit"]');
+      candidates.add('button[type="submit"]');
+    }
+    if (terms.length > 0) {
+      terms.forEach(term => {
+        candidates.add(`input[type="submit"][value*="${term}" i]`);
+        candidates.add(`button:has-text("${term}")`);
+      });
+    }
+  }
+
+  return [...candidates].filter((candidate, index, arr) => arr.indexOf(candidate) === index);
 }
 
 /**

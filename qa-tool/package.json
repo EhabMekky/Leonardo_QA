@@ -1,7 +1,7 @@
 {
-  "name": "qa-automation-tool",
+  "name": "leonardo",
   "version": "1.0.0",
-  "description": "Web-based QA automation tool with AI exploratory testing via Ollama and Playwright",
+  "description": "Leonardo — Web-based QA automation tool with AI exploratory testing via Ollama and Playwright",
   "type": "module",
   "main": "server.js",
   "scripts": {

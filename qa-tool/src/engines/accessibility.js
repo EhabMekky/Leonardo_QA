@@ -14,6 +14,7 @@
  */
 
 import { chromium, firefox, devices } from 'playwright';
+import { getLaunchOptions } from '../config.js';
 import AxeBuilder from '@axe-core/playwright';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -74,23 +75,10 @@ export async function runAccessibilityTest(options) {
   try {
     // --- Launch Browser ---
     onProgress({ type: 'status', message: `Launching browser ${browserName}...` });
-    if (browserName === 'firefox') {
-      browser = await firefox.launch({
-        headless: false,
-        slowMo: 300
-      });
-    } else if (browserName === 'edge') {
-      browser = await chromium.launch({
-        headless: false,
-        slowMo: 300,
-        channel: 'msedge'
-      });
-    } else {
-      browser = await chromium.launch({
-        headless: false,
-        slowMo: 300
-      });
-    }
+    const launchOptions = getLaunchOptions(browserName, 300);
+    browser = browserName === 'firefox'
+      ? await firefox.launch(launchOptions)
+      : await chromium.launch(launchOptions);
 
     const contextOptions = {
       viewport: { width: 1280, height: 720 }

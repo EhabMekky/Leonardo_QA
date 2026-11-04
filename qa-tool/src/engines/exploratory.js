@@ -12,6 +12,7 @@
  */
 
 import { chromium, firefox, devices } from 'playwright';
+import { getLaunchOptions } from '../config.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -186,23 +187,10 @@ export async function runExploratoryTest(options) {
 
     // --- Launch Browser ---
     onProgress({ type: 'status', message: `Launching browser ${browserName}...` });
-    if (browserName === 'firefox') {
-      browser = await firefox.launch({
-        headless: false,
-        slowMo: 400
-      });
-    } else if (browserName === 'edge') {
-      browser = await chromium.launch({
-        headless: false,
-        slowMo: 400,
-        channel: 'msedge'
-      });
-    } else {
-      browser = await chromium.launch({
-        headless: false,
-        slowMo: 400
-      });
-    }
+    const launchOptions = getLaunchOptions(browserName, 400);
+    browser = browserName === 'firefox'
+      ? await firefox.launch(launchOptions)
+      : await chromium.launch(launchOptions);
 
     videoDir = runId ? path.join(__dirname, '..', '..', 'reports', runId, 'videos') : null;
     const contextOptions = {

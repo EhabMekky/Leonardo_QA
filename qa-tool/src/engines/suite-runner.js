@@ -15,6 +15,7 @@
  */
 
 import { chromium, firefox, devices } from 'playwright';
+import { getLaunchOptions } from '../config.js';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 import path from 'path';
@@ -504,13 +505,10 @@ export async function runTestSuite(options) {
       // Step 3: Launch isolated browser
       onProgress({ type: 'status', message: `🌐 [${testCase.id}] Launching isolated browser session...` });
       
-      if (browserName === 'firefox') {
-        browser = await firefox.launch({ headless: false, slowMo: 300 });
-      } else if (browserName === 'edge') {
-        browser = await chromium.launch({ headless: false, slowMo: 300, channel: 'msedge' });
-      } else {
-        browser = await chromium.launch({ headless: false, slowMo: 300 });
-      }
+      const launchOptions = getLaunchOptions(browserName, 300);
+      browser = browserName === 'firefox'
+        ? await firefox.launch(launchOptions)
+        : await chromium.launch(launchOptions);
 
       const contextOptions = {
         viewport: { width: 1280, height: 720 }

@@ -1,5 +1,5 @@
 /**
- * server.js — Main Express Server for QA Automation Tool
+ * server.js — Main Express Server for Leonardo
  * 
  * Endpoints:
  *   GET  /                    — Serves the frontend UI
@@ -12,6 +12,7 @@
  * Port: 3000 (configurable via PORT env var)
  */
 
+import { config, getBrowserModeLabel } from './src/config.js';
 import express from 'express';
 import multer from 'multer';
 import fs from 'fs';
@@ -25,8 +26,8 @@ import { generateReport } from './src/utils/report-generator.js';
 import { generateDocxReport } from './src/utils/docx-generator.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PORT = process.env.PORT || 3000;
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
+const PORT = config.port;
+const OLLAMA_URL = config.ollamaUrl;
 
 // --- Express App Setup ---
 const app = express();
@@ -408,7 +409,7 @@ app.get('/report/:id', (req, res) => {
         <div style="text-align:center;">
           <h1>📋 Report Not Found</h1>
           <p>No report exists for run ID: <code>${runId}</code></p>
-          <a href="/" style="color:#818cf8;">← Back to QA Tool</a>
+          <a href="/" style="color:#818cf8;">← Back to Leonardo</a>
         </div>
       </body></html>
     `);
@@ -1103,7 +1104,7 @@ This document was automatically generated during an AI-powered business function
 - **Crawl Mode**: \`Business Auto-Doc Mode (High-Level Summary)\`
 - **Crawl Date/Time**: ${timestamp}
 - **AI Explorer Model**: \`${results.model}\` (Ollama)
-- **Browser Executed**: \`Chrome (Headless)\`
+- **Browser Executed**: \`Chrome (${getBrowserModeLabel()})\`
 
 ---
 
@@ -1202,10 +1203,11 @@ const server = app.listen(PORT, () => {
   console.log(`
 ╭──────────────────────────────────────────────────────────────╮
 │                                                              │
-│   🧪 QA Automation Tool                                     │
+│   🧪 Leonardo                                               │
 │                                                              │
 │   Server running at:  http://localhost:${PORT}                 │
 │   Ollama endpoint:    ${OLLAMA_URL.padEnd(36)}│
+│   Browser mode:       ${getBrowserModeLabel().padEnd(36)}│
 │                                                              │
 │   Endpoints:                                                 │
 │     GET  /                  — Frontend UI                    │

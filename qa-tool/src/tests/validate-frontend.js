@@ -87,7 +87,7 @@ const server = app.listen(PORT, async () => {
     console.log('🔍 Validating Page Title...');
     const title = await page.title();
     console.log(`   Page Title: "${title}"`);
-    if (!title.includes('QA Automation Tool')) {
+    if (!title.includes('Leonardo')) {
       throw new Error('Title verification failed');
     }
     

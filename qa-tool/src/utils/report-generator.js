@@ -294,8 +294,8 @@ function buildReportHTML(runId, results) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test Report — ${escapeHtml(testName)}</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>Leonardo Report — ${escapeHtml(testName)}</title>
+  <link rel="icon" type="image/jpeg" href="/icon.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -307,11 +307,8 @@ function buildReportHTML(runId, results) {
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="logo">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 11l3 3L22 4"/>
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-        </svg>
-        <span>QA Report</span>
+        <img src="/icon.jpg" alt="Leonardo" width="28" height="28" style="border-radius: 6px; object-fit: cover;" />
+        <span>Leonardo</span>
       </div>
     </div>
     <nav class="sidebar-nav">

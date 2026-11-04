@@ -1,5 +1,5 @@
 // ============================================================
-// QA Automation Tool — Frontend Application Logic
+// Leonardo — Frontend Application Logic
 // ============================================================
 
 // ---- State ----
